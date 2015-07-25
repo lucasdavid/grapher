@@ -1,0 +1,9 @@
+Flask
+Flask-Script
+flask-restful
+py2neo
+nose
+nose-parameterized
+fake-factory
+coverage
+radon
