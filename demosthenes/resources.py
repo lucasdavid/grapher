@@ -1,16 +1,17 @@
 from flask_restful import Resource
 
-from .base.resources import NodeResource, CollectionResource
+from . import models
+from .base import NodeResource, CollectionResource
 
 
 class HomeResource(Resource):
     def get(self):
-        return {}
+        return 'Hello world!'
 
 
 class StudentsResource(CollectionResource):
-    pass
+    model = models.Student
 
 
 class StudentResource(NodeResource):
-    pass
+    model = models.Student
