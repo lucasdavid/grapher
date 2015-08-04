@@ -11,7 +11,7 @@ class BaseSettings(object):
 
     DATABASES = {
         'default': {
-            'url': 'http://localhost:7474/db/data',
+            'uri': '127.0.0.1:7474/db/data/',
             'username': 'neo4j',
             'password': 'root',
         }
