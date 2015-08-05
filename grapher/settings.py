@@ -28,3 +28,6 @@ class ProductionSettings(BaseSettings):
 
 class TestingSettings(BaseSettings):
     TESTING = True
+
+
+current_settings = DevelopmentSettings

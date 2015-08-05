@@ -1,7 +1,7 @@
 from flask.ext.script import Manager, Server
-from demosthenes import app
+from grapher import app
 
-app.config.from_object('demosthenes.settings.DevelopmentSettings')
+app.config.from_object('grapher.settings.DevelopmentSettings')
 
 manager = Manager(app)
 manager.add_command('runserver', Server(port=80))

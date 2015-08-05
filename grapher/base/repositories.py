@@ -7,7 +7,6 @@ from .. import settings
 class Repository(object, metaclass=abc.ABCMeta):
     def __init__(self, model):
         self._model = model
-        self._model_name = model.__name__
 
     def all(self, skip=0, limit=None):
         raise NotImplementedError
@@ -39,7 +38,7 @@ class GraphRepository(Repository):
         return self._g
 
     def find(self, id):
-        return self.g.find_one(self._model_name, 'id', id)
+        return self.g.find_one(self._model['name'], 'id', id)
 
     def all(self, skip=0, limit=None):
-        return list(self.g.find(self._model_name, limit=limit))
+        return list(self.g.find(self._model['name'], limit=limit))

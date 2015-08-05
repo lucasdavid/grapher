@@ -1,7 +1,7 @@
 from faker import Faker
 from faker.providers import BaseProvider
 
-from demosthenes import models as m
+from grapher import models as m
 
 fake_data = Faker()
 

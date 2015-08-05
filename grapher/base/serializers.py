@@ -13,17 +13,15 @@ class Serializer(DataCollector):
         self._request = request or flask.request
 
     def get_fields(self):
-        fields = self.project_from_url and flask.request.args.get('fields') or self._model.fields
+        if self.project_from_url and flask.request.args.get('fields') is not None:
+            fields = set(flask.request.args.get('fields').split(','))
+        else:
+            fields = self._model['fields']['public'] | self._model['fields']['private']
 
-        if isinstance(fields, str):
-            # Fields come as a string from the request. Let's assume the user wrote
-            # the fields that they wanted, separated by a comma.
-            fields = fields.split(',')
-
-        return set(fields)
+        return fields
 
     def get_public_fields(self):
-        return self.get_fields() - set(self._model.guarded)
+        return self.get_fields() - self._model['fields']['private']
 
     def _detach_content_from_page(self):
         return self._data['content'] if 'content' in self._data else self._data
@@ -49,6 +47,7 @@ class Serializer(DataCollector):
 
         many = It.is_iterable(content)
         content = It.make_iterable(content)
+
         content = self._serialize(self.get_public_fields(), content)
         content = content if many else content[0]
 
