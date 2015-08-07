@@ -3,9 +3,10 @@
 ## Introduction
 Python automatic back-end generator for model-oriented development.
 
-## Usage
+## How-to
+### Basic usage
 Define your resources inside the **resources.py** file, inheriting from
-`BaseResource` or `GraphModelResource` classes.
+`BaseResource`, `ModelResource` or `GraphModelResource` classes.
 
 For example:
 ```py
@@ -18,7 +19,7 @@ class User(resources.GraphModelResource):
 
 You can now access /user and manipulate the resource freely.
 
-Advanced options:
+### Advanced usage
 ```py
 class User(resources.ModelResource):
     end_point = '/users'
