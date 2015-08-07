@@ -10,6 +10,8 @@ Define your resources inside the **resources.py** file, inheriting from
 
 For example:
 ```py
+from .core import resources
+
 class User(resources.GraphModelResource):
     schema = {
         'name': {'type': str},
@@ -20,7 +22,12 @@ class User(resources.GraphModelResource):
 You can now access /user and manipulate the resource freely.
 
 ### Advanced usage
+#### Available properties
+The following class exemplifies the available properties which are considered by the Grapher.
+
 ```py
+from .core import resources
+
 class User(resources.ModelResource):
     end_point = '/users'
     schema = {
@@ -48,4 +55,19 @@ class User(resources.ModelResource):
 
     repository_class = ...
     serializer_class = ...
+```
+
+#### Overriding HTTP methods.
+If you wish to change the default behavior of a method, simply override it in your resource class:
+```py
+from .core import resources
+
+class Task(resources.GraphModelResource):
+    schema = {
+        'title': {'type': str},
+        'lead': {'type': str},
+    }
+
+    def get(self):
+        return 'Hello! You can trust me! I'm different!'
 ```
