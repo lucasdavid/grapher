@@ -1,69 +1,85 @@
-from flask import request, abort
-from flask_restful import reqparse
+from flask import request
+from flask_restful import abort
 
-from . import common, errors
+from . import common
 
 
 class Serializer:
-    dynamic_fields = True
+    dynamic_projection = True
 
-    def __init__(self, schema, expose=(), protect=()):
+    _projected_fields = None
+
+    def __init__(self, schema, validators=()):
         self.schema = schema
-        self.fields = self.schema.keys()
-
-        expose, protect = set(expose), set(protect)
-
-        if expose and protect:
-            # Prevents from defining expose and protect at the same time.
-            # We don't want this, as the expected behavior becomes very obscure.
-            raise errors.GrapherError('expose and protect Resource\'s fields cannot be defined at once.')
-
-        nonexistent = (expose | protect) - self.fields - {'_id'}
-        if nonexistent:
-            raise errors.GrapherError('Fields {%s} were not declared in the schema.' % nonexistent)
-
-        if expose:
-            self.projected = expose
-        elif protect:
-            self.projected = self.fields - protect
-        else:
-            self.projected = self.fields
-
-        request_fields = request.args.get('fields')
-        if self.dynamic_fields and request_fields:
-            request_fields = set(request_fields.split(','))
-
-            invalid_fields = request_fields - self.projected
-            if invalid_fields:
-                # End-users have tried to project fields that are not listed as projectable,
-                # such as protected or nonexistent fields. Motherfuckers.
-                abort(400, 'Cannot project fields: %s.' % invalid_fields)
-
-            self.projected = self.projected & request_fields
-
-    _parser = None
+        self.validators = validators
 
     @property
-    def parser(self):
-        if not self._parser:
-            self._parser = reqparse.RequestParser()
+    def projected_fields(self):
+        if self._projected_fields is None:
+            self._projected_fields = {field for field, desc in self.schema.items() if
+                                      'visible' not in desc or not desc['visible']}
 
-            for field in self.schema.keys() - {'_meta'}:
-                self._parser.add_argument(field, **self.schema[field])
+            if self.dynamic_projection and request.args.get('fields'):
+                # Dynamic project is ON and the user has requested a field projection onto the result.
+                # We have to validate and filter the desired fields.
+                request_fields = set(request.args.get('fields').split(','))
 
-        return self._parser
+                invalid_fields = request_fields - self._projected_fields
+                if invalid_fields:
+                    # End-users have tried to project invalid fields, such
+                    # as nonexistent fields or fields marked as not visible.
+                    abort(400, message='Cannot project fields: %s. Make sure these fields do exist, that they are'
+                                       ' marked as "visible" and you have permission to access them.' % invalid_fields)
 
-    def digest(self):
-        return self.parser.parse_args()
+                self._projected_fields = self._projected_fields & request_fields
+
+        return self._projected_fields
+
+    def validate(self, entries):
+        entries = {i: e for i, e in enumerate(entries)}
+
+        accepted = entries.keys()
+        failed = {}
+
+        for validator in self.validators:
+            validator = validator(self.schema)
+
+            a, f = validator.run(entries)
+
+            # Filter entities accepted.
+            accepted &= a
+
+            # Register which errors have happened.
+            for e, errors in f.items():
+                if e not in failed:
+                    failed[e] = {}
+
+                failed[e][validator.clean_name()] = errors
+
+        # Rescue entities associated with the accepted #ith.
+        accepted = {i:e for i,e in entries.items() if i in accepted} if accepted else {}
+
+        return accepted, failed
+
+    def digest(self, data):
+        accepted, declined = {}, {}
+
+        data, _ = common.CollectionHelper.transform(data)
+        if data:
+            accepted, declined = self.validate(data)
+
+        return accepted, declined
 
     def project(self, data):
-        data, transformed = common.It.transform(data)
+        data, transformed = common.CollectionHelper.transform(data)
 
+        # For each entry, remove all (key->value) pair that isn't in the set
+        # of projected fields, which are private or non-requested fields.
         for entry in data:
-            for field in entry.keys() - self.projected:
+            for field in entry.keys() - self.projected_fields:
                 del entry[field]
 
-        return common.It.restore(data, transformed), {'projected': list(self.projected)}
+        return common.CollectionHelper.restore(data, transformed), list(self.projected_fields)
 
 
 class GraphSerializer(Serializer):
