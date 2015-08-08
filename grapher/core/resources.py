@@ -1,9 +1,7 @@
 from flask import request
-from flask_restful import Resource, marshal
+from flask_restful import Resource
 
-from . import serializers, validators, repositories, paginators
-
-from .. import settings
+from . import serializers, repositories, paginators, common
 
 
 class BaseResource(Resource):
@@ -27,20 +25,38 @@ class BaseResource(Resource):
         return cls.name or '%s' % cls.__name__
 
     @staticmethod
-    def result(content, **metadata):
-        return {
-            'content': content,
-            '_metadata': metadata
-        }
+    def response(content, **meta):
+        result = {}
+
+        if meta:
+            result['_meta'] = meta
+
+        if isinstance(content, dict):
+            result.update(content)
+        else:
+            result['content'] = content
+
+        return result
+
+    def _trigger(self, event, *args, **kwargs):
+        """Triggers a specific event, in case it has been defined.
+
+        :param event: the event to be triggered.
+        :param args: positional arguments passed to the event.
+        :param kwargs: key arguments passed to the event.
+        :return: the event's result, in case it has been defined.
+        """
+        method = getattr(self, event)
+        if method:
+            return method(*args, **kwargs)
 
 
 class ModelResource(BaseResource):
     schema = {}
+    meta = {}
 
     repository_class = None
     serializer_class = None
-
-    validators = (validators.NotSupportedFields, validators.CorrectFieldTypes,)
 
     def __init__(self):
         self._repository = self._serializer = self._paginator = None
@@ -52,7 +68,7 @@ class ModelResource(BaseResource):
 
     @property
     def serializer(self):
-        self._serializer = self._serializer or self.serializer_class(self.schema)
+        self._serializer = self._serializer or self.serializer_class(self.schema, self.meta)
         return self._serializer
 
     @property
@@ -65,18 +81,23 @@ class ModelResource(BaseResource):
         d, fields = self.serializer.project(d)
         d, page = self.paginator.paginate(d)
 
-        return self.result(d, projection=fields, page=page)
+        return self.response(d, projection=fields, page=page)
 
     def post(self):
-        accepted, declined = self.serializer.digest(request.json)
+        entries, declined = self.serializer.validate_or_abort_if_empty(request.json)
 
-        accepted = self.repository.create(accepted.values())
-        accepted, fields = self.serializer.project(accepted)
+        entries = self.repository.create(entries)
+        entries, fields = self.serializer.project(entries)
 
-        return self.result({
-            'created': {i: entity for i, entity in enumerate(accepted)},
-            'failed': declined
-        }, projection=fields)
+        return self.response({'created': entries, 'failed': declined}, projection=fields)
+
+    def put(self):
+        entries, declined = self.serializer.validate_or_abort_if_empty(request.json)
+
+        entries = self.repository.update(entries)
+        entries, fields = self.serializer.project(entries)
+
+        return self.response({'updated': entries, 'failed': declined}, projection=fields)
 
 
 class GraphModelResource(ModelResource):
