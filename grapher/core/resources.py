@@ -1,6 +1,9 @@
+from flask import request
 from flask_restful import Resource, marshal
 
-from . import repositories, serializers, paginators
+from . import serializers, validators, repositories, paginators
+
+from .. import settings
 
 
 class BaseResource(Resource):
@@ -34,11 +37,10 @@ class BaseResource(Resource):
 class ModelResource(BaseResource):
     schema = {}
 
-    expose = ()
-    protect = ()
-
     repository_class = None
     serializer_class = None
+
+    validators = (validators.NotSupportedFields, validators.CorrectFieldTypes,)
 
     def __init__(self):
         self._repository = self._serializer = self._paginator = None
@@ -50,7 +52,7 @@ class ModelResource(BaseResource):
 
     @property
     def serializer(self):
-        self._serializer = self._serializer or self.serializer_class(self.schema, self.expose, self.protect)
+        self._serializer = self._serializer or self.serializer_class(self.schema)
         return self._serializer
 
     @property
@@ -63,12 +65,18 @@ class ModelResource(BaseResource):
         d, fields = self.serializer.project(d)
         d, page = self.paginator.paginate(d)
 
-        return self.result(d, fields=fields, page=page)
+        return self.result(d, projection=fields, page=page)
 
     def post(self):
-        d = self.serializer.digest()
-        d = self.repository.create(d)
-        return marshal(d, fields=self.expose)
+        accepted, declined = self.serializer.digest(request.json)
+
+        accepted = self.repository.create(accepted.values())
+        accepted, fields = self.serializer.project(accepted)
+
+        return self.result({
+            'created': {i: entity for i, entity in enumerate(accepted)},
+            'failed': declined
+        }, projection=fields)
 
 
 class GraphModelResource(ModelResource):
