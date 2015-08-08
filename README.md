@@ -69,5 +69,5 @@ class Task(resources.GraphModelResource):
     }
 
     def get(self):
-        return 'Hello! You can trust me! I'm different!'
+        return 'Hello! You can trust me! I\'m different!'
 ```
