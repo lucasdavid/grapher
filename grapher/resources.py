@@ -1,20 +1,15 @@
 from .core import resources, filters
 
 
-class Home(resources.BaseResource):
-    end_point = '/'
-
-    def get(self):
-        return 'Hello world!'
-
-
 class User(resources.GraphModelResource):
+    description = 'users, such as students, professors and researches.'
+    methods = ('GET', 'POST',)
+
     schema = {
         'name': {
             'type': 'string',
             'required': True,
             'minlength': 4,
-            'identity': True,
         },
         'email': {
             'type': 'string',
@@ -27,4 +22,18 @@ class User(resources.GraphModelResource):
             'required': True,
             'minlength': 6,
         },
+    }
+
+
+class Department(resources.GraphModelResource):
+    description = 'university\'s departments.'
+    methods = ('GET', 'POST',)
+
+    schema = {
+        'name': {
+            'type': 'string',
+            'required': True,
+            'blank': False,
+            'minlength': 4,
+        }
     }

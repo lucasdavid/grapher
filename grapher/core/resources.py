@@ -7,6 +7,9 @@ from . import serializers, repositories, paginators, common
 class BaseResource(Resource):
     end_point = None
     name = None
+    description = 'Description not provided.'
+
+    methods = ('GET', 'HEAD', 'OPTIONS', 'POST', 'PATCH', 'PUT', 'DELETE')
 
     @classmethod
     def real_end_point(cls):
