@@ -5,59 +5,49 @@ from . import common, validators
 
 
 class Serializer:
-    dynamic_projection = True
-
-    def __init__(self, schema, meta):
+    def __init__(self, schema):
         self.schema = schema
-        self.meta = meta
 
     _projected_fields = None
 
     @property
     def projected_fields(self):
-        if self._projected_fields is None:
-            # Scan all fields that are tagged as "visible".
-            self._projected_fields = {f for f, d in self.schema.items() if 'visible' not in d or not d['visible']}
-
-            if self.dynamic_projection and request.args.get('fields'):
-                # Dynamic project is ON and the user has requested a field projection onto the result.
-                request_fields = set(request.args.get('fields').split(','))
-
-                invalid_fields = request_fields - self._projected_fields
-                if invalid_fields:
-                    # End-users have tried to project invalid fields, such
-                    # as nonexistent fields or fields marked as not visible.
-                    abort(400, errors=['Cannot project fields: %s. Make sure these fields do exist, that they are'
-                                       ' marked as "visible" and you have permission to access them.' % invalid_fields])
-
-                self._projected_fields = self._projected_fields & request_fields
-
+        # Scan all fields that are tagged as "visible".
+        self._projected_fields = self._projected_fields or \
+                                 {f for f, d in self.schema.items() if 'visible' not in d or d['visible']}
         return self._projected_fields
 
-    _v = None
-
-    @property
-    def v(self):
-        self._v = self._v or validators.GrapherValidator(self.schema)
-        return self._v
-
-    def validate_or_abort_if_empty(self, d):
+    def validate(self, d, accept_partial_data=False):
         if not d:
             abort(400, errors='Cannot validate empty data.')
 
-        return self.validate(d)
-
-    def validate(self, d):
         d, _ = common.CollectionHelper.transform(d)
 
         accepted = []
         declined = {}
-    
+
+        v = validators.GrapherValidator(self.schema)
+
+        if accept_partial_data:
+            fields_to_restore = []
+            # If we're accepting partial data, that means nothing is required.
+            # This will be the case when doing patch updates.
+            for field, description in self.schema.items():
+                if 'required' in description and description['required']:
+                    description['required'] = False
+                    fields_to_restore.append(field)
+
         for i, e in enumerate(d):
-            if self.v.validate(e):
+            if v.validate(e):
                 accepted.append(e)
             else:
-                declined[i] = self.v.errors
+                declined[i] = v.errors
+
+        if accept_partial_data:
+            # Many of the fields have had the "required" mark removed.
+            # Let's put them back again.
+            for field in fields_to_restore:
+                self.schema[field]['required'] = True
 
         return accepted, declined
 
@@ -73,6 +63,30 @@ class Serializer:
         return common.CollectionHelper.restore(d, transformed), list(self.projected_fields)
 
 
-class GraphSerializer(Serializer):
-    def project(self, d):
-        return super().project([entry.properties for entry in d])
+class DynamicSerializer(Serializer):
+    @property
+    def projected_fields(self):
+        """Overrides BaseSerializer :project_fields property to consider fields requested by the user.
+
+        Usage:
+            curl .../resource?fields=[field][,field]*
+            curl localhost/user?fields=id,name
+        """
+        if self._projected_fields is None:
+            fields = super().projected_fields
+
+            if request.args.get('fields'):
+                # The user has requested a field projection onto the result.
+                # Only get not empty fields, fixing requests errors such as "fields=,id,name" or "fields=id,name,"
+                request_fields = {f for f in request.args.get('fields').split(',') if f}
+
+                invalid_fields = request_fields - fields
+                if invalid_fields:
+                    # End-users have tried to project invalid fields, such
+                    # as nonexistent fields or fields marked as not visible.
+                    abort(400, errors=['Unknown fields %s.' % invalid_fields],
+                          suggestions=['Available fields are %s.' % fields])
+
+                self._projected_fields = fields & request_fields
+
+        return self._projected_fields
