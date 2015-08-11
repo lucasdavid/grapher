@@ -1,8 +1,10 @@
-# GRAPHER
+# Grapher
+
 ## Introduction
 Automatic back-end service generator based on resource schematics.
 
-This project is strongly inspired by [rest-framework](http://www.django-rest-framework.org/) and [eve-python](http://python-eve.org/).
+This project is strongly inspired by
+[rest-framework](http://www.django-rest-framework.org/) and [eve-python](http://python-eve.org/).
 
 ## Using it
 ### Basic
@@ -20,15 +22,20 @@ class Department(resources.GraphModelResource):
     }
 
 ```
-Schematics are based on the awesome project [cerberus](docs.python-cerberus.org/).
-Naturally, all cannonical validation rules apply here.
+
+Done! You can now access `/department` to manipulate the resource!
+
+Note: schematics are based on the awesome project [cerberus](docs.python-cerberus.org/).
+Naturally, all canonical validation rules apply here.
 
 #### Paginating
 You can control the flow of data that you receive.
-That's specially convenient when you have a sensible network link.
+That's specially convenient when you have a fragile internet link.
+
 ```shell
 curl http://localhost/department?skip=2&take=2
 ```
+
 ```http
 content-type: application/json
 date: Tue, 11 Aug 2015 01:48:47 GMT
@@ -59,9 +66,11 @@ content-length: 534
 
 #### Projecting
 You can select properties from the resources, reducing considerably the responses sizes.
+
 ```shell
 curl http://localhost/department?fields=id
 ```
+
 ```http
 content-type: 'application/json'
 date: 'Tue, 11 Aug 2015 01:50:57 GMT
@@ -88,8 +97,6 @@ content-length: 479
     }
 }
 ```
-
-Done! You can now access `/user` and manipulate the resource freely!
 
 ### Further use
 #### Available properties
@@ -149,6 +156,7 @@ class Task(resources.GraphModelResource):
         return self.response(d, projection=fields)
 
 ```
+
 #### Events
 Define a method with the name ('before_'|'after_').('create'|'update'|'delete') in your resource. 
 The method will be called when the event get triggered.
@@ -178,6 +186,7 @@ class Task(resources.GraphModelResource):
 		Archiver.archive('me', body=deleted_entities)
 
 ```
+
 Bellow is listed all events possible:
 
 	* before_create
