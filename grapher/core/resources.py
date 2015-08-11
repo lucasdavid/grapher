@@ -106,7 +106,7 @@ class ModelResource(Resource):
         return self.response(d, projection=fields, page=page)
 
     def post(self):
-        entries, declined = self.serializer.validate_or_abort_if_empty(request.json)
+        entries, declined = self.serializer.validate(request.json)
 
         entries = self.repository.create(entries)
         entries, fields = self.serializer.project(entries)
