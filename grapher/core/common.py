@@ -1,4 +1,5 @@
 import abc
+from . import errors
 
 
 class CollectionHelper(metaclass=abc.ABCMeta):
@@ -9,10 +10,14 @@ class CollectionHelper(metaclass=abc.ABCMeta):
     def needs(cls, item):
         """Checks if :item needs to be transformed into a list.
 
+        Fundamentally, lists, tuples, sets and objects that have a member '__iter__' don't need transformation,
+        except for dictionaries and objects of their subclasses.
+
         :param item: the unknown structure.
         :return: :boolean:
         """
-        return not isinstance(item, (list, tuple, set))
+        return not isinstance(item, (list, tuple, set)) and \
+               not hasattr(item, '__iter__') or isinstance(item, dict) or issubclass(item.__class__, dict)
 
     @classmethod
     def transform(cls, item):
@@ -21,9 +26,6 @@ class CollectionHelper(metaclass=abc.ABCMeta):
         :param item: the structure to be transformed.
         :return: a list containing the passed structure, or the structure itself, if it's already a list.
         """
-        if item is None:
-            return None, False
-
         return ([item], True) if cls.needs(item) \
             else (item, False)
 
@@ -35,7 +37,7 @@ class CollectionHelper(metaclass=abc.ABCMeta):
         :param previously_transformed: the flag which indicates if the structure was previously transformed.
         :return: the structure, in case it was not transformed. The element in the first-level of the list, otherwise.
         """
-        return item.pop() if previously_transformed and item else item
+        return item.pop() if previously_transformed else item
 
     @classmethod
     def enumerate(cls, item):
@@ -50,4 +52,22 @@ class CollectionHelper(metaclass=abc.ABCMeta):
     def restore_enumeration(cls, item, previously_transformed):
         item = [e for _, e in item.items()]
 
-        return item.pop() if previously_transformed and item else item
+        return cls.restore(item, previously_transformed)
+
+
+class SchemaNavigator(metaclass=abc.ABCMeta):
+    @classmethod
+    def identity_field_from(cls, schema):
+        # Let's assume :_id is the identity field.
+        identity = None
+
+        # Now, we override :_id, if explicitly flagged by the user.
+        for field, desc in schema.items():
+            if 'identity' in desc and desc['identity']:
+                if identity:
+                    raise errors.SchemaDefinitionError(
+                        'Cannot define both fields %s and %s as identity.', identity, field)
+
+                identity = field
+
+        return identity or '_id'
