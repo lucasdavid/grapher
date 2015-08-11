@@ -10,7 +10,7 @@ This project is strongly inspired by
 ### Basic
 #### Defining schematics
 Define your resources inside the **resources.py** file, inheriting from
-`BaseResource`, `ModelResource` or `GraphModelResource` classes.
+`Resource`, `ModelResource` or `GraphModelResource` classes.
 
 For example:
 ```py
@@ -151,20 +151,20 @@ class Task(resources.GraphModelResource):
 		task = self.repository.find(identity) or self.repository.create({})
         
 		# Serialize data, preventing sensible data to be sent to clients.
-		d, fields = self.serializer.project(d)
+		task, fields = self.serializer.project(task)
 		
-        return self.response(d, projection=fields)
+        return self.response(task, projection=fields)
 
 ```
 
 #### Events
-Define a method with the name ('before_'|'after_').('create'|'update'|'delete') in your resource. 
+Define a method with the name `('before_'|'after_').('create'|'update'|'delete')` in your resource. 
 The method will be called when the event get triggered.
 
 ```py
 from datetime import datetime
 from .core import resources
-from [...] import Archiver
+from [...] import Archives
 
 class Task(resources.GraphModelResource):
     schema = {
@@ -183,19 +183,22 @@ class Task(resources.GraphModelResource):
 		"""All deleted entities are copied to an archive, such as files, mails or other databases.
 		"""
 		deleted_entities = kwargs.pop('entities')
-		Archiver.archive('me', body=deleted_entities)
+		Archives.archive('me', body=deleted_entities)
 
 ```
 
-Bellow is listed all events possible:
+A valid event listener is any combination `(prefix + '_' + suffix)` from the two lists bellow:
 
-	* before_create
-	* after_create
-	* before_update
-	* after_update
-	* before_delete
-	* after_delete
-	* before_retrieve
-	* after_retrieve
-	* before_list
-	* after_list
+Prefixes
+```
+before
+after
+```
+
+Suffixes
+```
+create
+update
+delete
+retrieve
+```

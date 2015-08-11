@@ -1,14 +1,25 @@
 from setuptools import setup, find_packages
 
+requirements = []
+try:
+    with open('requirements.txt') as f:
+        requirements += f.readlines()
+except IOError:
+    pass
+try:
+    with open('requirements-dev.txt') as f:
+        requirements += f.readlines()
+except IOError:
+    pass
+
 setup(
-    name='demosthenes',
+    name='grapher',
     version='0.1',
     license='MIT',
     long_description=open('README.md').read(),
-    packages=find_packages(exclude=['tests.*', 'tests']),
+    packages=find_packages(include=('grapher.*',)),
     include_package_data=True,
-    install_requires=['neomodel'],
-    extras_require={'tests': ['fake-factory', 'nose', 'nose-parameterized', 'coverage', 'radon']},
+    install_requires=requirements,
     test_suite='tests.unit',
     classifiers=[
         'Programming Language :: Python',
@@ -16,6 +27,6 @@ setup(
         'Natural language :: English',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3.4',
-        'Topic :: Education',
+        'Topic :: REST API creator',
     ],
 )

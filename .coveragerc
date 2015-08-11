@@ -1,8 +1,8 @@
 [run]
-include = *demosthenes*
+include = *grapher*
 branch = True
 
 [report]
 exclude_lines =
-        raise NotImplementedError
-        if __name__ == .__main__.:
+    raise NotImplementedError
+    if __name__ == .__main__.:
