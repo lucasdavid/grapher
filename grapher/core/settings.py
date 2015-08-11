@@ -1,7 +1,7 @@
 import os
 
 
-class BaseSettings:
+class Settings:
     TITLE = 'Grapher'
     DESCRIPTION = 'Welcome to Grapher!'
 
@@ -11,6 +11,8 @@ class BaseSettings:
     TESTING = False
 
     BASE_URL = ''
+
+    DATABASES = {}
 
     # Flags if partial recoveries should be attempted.
     # For instance, a list of entities to be created, where a single entity is not valid:

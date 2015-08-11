@@ -36,9 +36,9 @@ class GraphRepository(Repository):
     @property
     def g(self):
         self._g = self._g or Graph('http://%s:%s@%s' % (
-            settings.ProductionSettings.DATABASES['default']['username'],
-            settings.ProductionSettings.DATABASES['default']['password'],
-            settings.ProductionSettings.DATABASES['default']['uri'],
+            settings.effective.DATABASES['default']['username'],
+            settings.effective.DATABASES['default']['password'],
+            settings.effective.DATABASES['default']['uri'],
         ))
 
         return self._g

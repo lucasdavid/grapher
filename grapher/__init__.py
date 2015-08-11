@@ -2,25 +2,40 @@ import inspect
 from flask import Flask
 from flask_restful import Api
 
-from . import resources as user_resources
+from . import resources as custom_resources
 from .core import resources, docs
 
-# Initiate API.
-app = Flask(__name__)
-app.config.from_object('grapher.settings.ProductionSettings')
 
-api = Api(app)
+class Grapher(Flask):
+    """Grapher flask application.
 
-
-# Scan .grapher.resources after resources declared by the user.
-# Finally, build a list of (endpoint, resource) tuples for each resource declared.
-rs = [r for name, r in
-      inspect.getmembers(user_resources, lambda c: inspect.isclass(c) and issubclass(c, resources.Resource))]
-
-for r in rs:
-    api.add_resource(r, r.real_end_point())
+    Usage:
+        app = Grapher(__name__)
+        api = GrapherApi(app).startup()
+        app.run()
+    """
 
 
-# Gives all resources scanned to the Docs resource and register it.
-docs.Docs.resources_to_describe = rs
-api.add_resource(docs.Docs, docs.Docs.real_end_point())
+class GrapherApi(Api):
+    def _auto_load_resources(self):
+        """Scan project after subclasses of :Resource declared by the user. Then register them in the API.
+
+        All resources must have been declared in .grapher.resources, as it's the only module scanned.
+        """
+        rs = [r for name, r in inspect.getmembers(custom_resources,
+                                                  lambda c: inspect.isclass(c) and issubclass(c, resources.Resource))]
+        for r in rs:
+            self.add_resource(r, r.real_end_point())
+
+        return self
+
+    def startup(self):
+        """Start the API, loading all resources and documenting itself.
+        """
+        self._auto_load_resources()
+
+        # Gives all resources scanned to the Docs resource and register it.
+        docs.Docs.resources_to_describe = (r for r, *_ in self.resources)
+        self.add_resource(docs.Docs, docs.Docs.real_end_point())
+
+        return self
