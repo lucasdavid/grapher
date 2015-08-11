@@ -18,9 +18,10 @@ class Neo4jSanityTest(TestCase):
         john = Node('User', name='john')
         maria = Node('User', name='maria')
 
-        john_knows_maria = Relationship(john, 'KNOWS', maria, since=datetime.now())
+        knows = Relationship(john, 'KNOWS', maria, since=datetime.now())
 
-        self.g.create(john_knows_maria)
+        self.g.create(knows)
+        self.g.delete(john, maria, knows)
 
     def test_delete(self):
         self.g.delete_all()
