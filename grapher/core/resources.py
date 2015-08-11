@@ -1,10 +1,10 @@
+import flask_restful
 from flask import request
-from flask_restful import Resource
 
-from . import serializers, repositories, paginators, common
+from . import serializers, repositories, paginators, errors
 
 
-class BaseResource(Resource):
+class Resource(flask_restful.Resource):
     end_point = None
     name = None
     description = 'Description not provided.'
@@ -54,25 +54,44 @@ class BaseResource(Resource):
             return method(*args, **kwargs)
 
 
-class ModelResource(BaseResource):
+class ModelResource(Resource):
     schema = {}
-    meta = {}
 
-    repository_class = None
-    serializer_class = None
+    repository_class = repositories.Repository
+    serializer_class = serializers.DynamicSerializer
 
     def __init__(self):
-        self._repository = self._serializer = self._paginator = None
+        if not self.schema:
+            raise errors.SchemaError('Schema is an essential part of a model-resource.'
+                                     'Define a valid schema or change %s to inherit from base-resource.'
+                                     % self.clean_name())
+
+        identity_field = None
+        for field, description in self.schema.items():
+            if 'identity' in description and description['identity']:
+                identity_field = field
+
+        if identity_field is None:
+            self.schema['_id'] = {
+                'type': 'integer',
+                'identity': True,
+            }
+
+    _repository = None
 
     @property
     def repository(self):
         self._repository = self._repository or self.repository_class(self.clean_name(), self.schema)
         return self._repository
 
+    _serializer = None
+
     @property
     def serializer(self):
-        self._serializer = self._serializer or self.serializer_class(self.schema, self.meta)
+        self._serializer = self._serializer or self.serializer_class(self.schema)
         return self._serializer
+
+    _paginator = None
 
     @property
     def paginator(self):
@@ -95,7 +114,15 @@ class ModelResource(BaseResource):
         return self.response({'created': entries, 'failed': declined}, projection=fields)
 
     def put(self):
-        entries, declined = self.serializer.validate_or_abort_if_empty(request.json)
+        entries, declined = self.serializer.validate(request.json)
+
+        entries = self.repository.update(entries)
+        entries, fields = self.serializer.project(entries)
+
+        return self.response({'updated': entries, 'failed': declined}, projection=fields)
+
+    def patch(self):
+        entries, declined = self.serializer.validate(request.json, accept_partial_data=True)
 
         entries = self.repository.update(entries)
         entries, fields = self.serializer.project(entries)
@@ -105,4 +132,3 @@ class ModelResource(BaseResource):
 
 class GraphModelResource(ModelResource):
     repository_class = repositories.GraphRepository
-    serializer_class = serializers.GraphSerializer

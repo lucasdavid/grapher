@@ -15,7 +15,7 @@ api = Api(app)
 # Scan .grapher.resources after resources declared by the user.
 # Finally, build a list of (endpoint, resource) tuples for each resource declared.
 rs = [r for name, r in
-      inspect.getmembers(user_resources, lambda c: inspect.isclass(c) and issubclass(c, resources.BaseResource))]
+      inspect.getmembers(user_resources, lambda c: inspect.isclass(c) and issubclass(c, resources.Resource))]
 
 for r in rs:
     api.add_resource(r, r.real_end_point())

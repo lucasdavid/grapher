@@ -1,26 +1,29 @@
-from .core import resources, filters
+from .core import resources
 
 
 class User(resources.GraphModelResource):
     description = 'users, such as students, professors and researches.'
-    methods = ('GET', 'POST',)
+    methods = ('GET', 'POST', 'PUT', 'PATCH',)
 
     schema = {
         'name': {
             'type': 'string',
             'required': True,
+            'empty': False,
             'minlength': 4,
         },
         'email': {
             'type': 'string',
             'required': False,
+            'empty': False,
             'index': True,
-            'visible': False
         },
         'password': {
             'type': 'string',
             'required': True,
+            'empty': False,
             'minlength': 6,
+            'visible': False,
         },
     }
 
@@ -33,7 +36,7 @@ class Department(resources.GraphModelResource):
         'name': {
             'type': 'string',
             'required': True,
-            'blank': False,
+            'empty': False,
             'minlength': 4,
         }
     }
