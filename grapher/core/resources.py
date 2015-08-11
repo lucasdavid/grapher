@@ -5,9 +5,7 @@ from . import serializers, repositories, paginators, errors
 
 
 class Resource(flask_restful.Resource):
-    end_point = None
-    name = None
-    description = 'Description not provided.'
+    end_point = name = description = None
 
     methods = ('GET', 'HEAD', 'OPTIONS', 'POST', 'PATCH', 'PUT', 'DELETE')
 
