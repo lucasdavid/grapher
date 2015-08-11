@@ -1,13 +1,18 @@
 import os
 
 
-class BaseSettings(object):
+class BaseSettings:
+    TITLE = 'Grapher'
+    DESCRIPTION = ''
+
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
-    SECRET_KEY = '#1?m3m+1d9#0md40$41!idm410nd18nJ1301j380n83n%1dn3&011*30'
+    SECRET_KEY = 'VMR5SN7G9APTR98B31QMMKRMZVR2J0CCHK5XYJJ91DMB3N2A0HIHFKMGE97MDBP2'
 
     DEBUG = False
     TESTING = False
+
+    BASE_URL = ''
 
     DATABASES = {
         'default': {
@@ -23,17 +28,21 @@ class BaseSettings(object):
     #   Does not insert any of the entities, if False.
     ATTEMPT_PARTIAL_RECOVERIES = True
 
+    DOCS = {}
+
 
 class DevelopmentSettings(BaseSettings):
+    SECRET_KEY = '0A7AIJTUZ15QZFGQGLYRH04ZIEM1CIB9BLDH278UFWE7I5L001H4C9N8CQP7P55U'
     DEBUG = True
 
 
 class ProductionSettings(BaseSettings):
-    pass
+    SECRET_KEY = 'VGU4DKW8V0ED6CDRIR4J5DTND7EHYJPK8SHUDYJD7ZGXCVCZC8LDR71LBO4JKZWE'
 
 
 class TestingSettings(BaseSettings):
+    SECRET_KEY = 'Q5TJ45E7POZ77E59UVMGHYW8FJ0SHQ38AXXNYMCKFUAMCMF38IDTN5I0KUCH2ISJ'
     TESTING = True
 
 
-current_settings = DevelopmentSettings
+effective = DevelopmentSettings
