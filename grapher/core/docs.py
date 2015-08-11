@@ -29,7 +29,7 @@ class Docs(resources.Resource):
         """
         return {
             'uri': resource.real_end_point(),
-            'description': resource.description,
+            'description': resource.description or 'resource %s' % resource.clean_name(),
             'schema': resource.schema,
             'methods': resource.methods
         }
