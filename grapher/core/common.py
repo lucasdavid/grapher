@@ -1,5 +1,5 @@
 import abc
-from . import errors
+from cerberus import SchemaError
 
 
 class CollectionHelper(metaclass=abc.ABCMeta):
@@ -65,8 +65,7 @@ class SchemaNavigator(metaclass=abc.ABCMeta):
         for field, desc in schema.items():
             if 'identity' in desc and desc['identity']:
                 if identity:
-                    raise errors.SchemaDefinitionError(
-                        'Cannot define both fields %s and %s as identity.', identity, field)
+                    raise SchemaError('Cannot define both fields %s and %s as identity.', identity, field)
 
                 identity = field
 

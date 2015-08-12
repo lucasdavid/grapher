@@ -1,28 +1,49 @@
+from flask_restful import request, abort
+from .. import settings
+
+
 class GrapherError(RuntimeError):
     pass
 
 
-class SchemaError(GrapherError):
-    pass
+class BadRequestError(GrapherError):
+    """Usually instantiated when it becomes clear the user has made a illicit request.
+
+    A list of errors should be passed on instantiation. E.g.:
+        ('INVALID_FIELDS', invalid_fields, fields)
+        ('DATA_CANNOT_BE_EMPTY', data, [{'example': 10}])
+
+    Should be raised or instantiated, followed by :.abort() the call.
+
+    """
+    def __init__(self, *errors):
+        self.errors = errors
+
+    def as_api_response(self):
+        """Return a dictionary which represents how bad is the request.
 
 
-class SchemaDefinitionError(SchemaError):
-    def __init__(self, message, *fields):
-        super().__init__(message % fields)
+        :return: :dict: containing information about the errors raised.
+        """
+        response = {
+            'uri': request.url,
+            'errors': {},
+        }
 
+        for code, description, suggestions in self.errors:
+            error = settings.effective.ERRORS[code].copy()
+            error['description'] %= list(description)
+            error['suggestions'] = list(suggestions)
 
-class ConflictingIdentityError(SchemaDefinitionError):
-    def __init__(self, field_a, field_b):
-        super().__init__('The fields %s are both marked as identity of the resource.' % (field_a, field_b))
+            response['errors'][code] = error
 
+        return response
 
-class ComponentInstantiationError(GrapherError):
-    def __init__(self, component, *args):
-        super().__init__('Cannot construct %s with the following arguments: %s' % (
-            component.__class__.__name__, args))
+    def abort(self, status_code=400):
+        """Abort current API link, returning the data about the errors to the users.
 
-
-class FactoryError(GrapherError):
-    pass
-
-
+        :param status_code: the status that will be sent to the peer. Notice that,
+        as this class is called BadRequestError, you can only send 4** errors.
+        """
+        assert 400 <= status_code < 500
+        abort(status_code, **self.as_api_response())

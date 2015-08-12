@@ -1,7 +1,7 @@
 from flask import request
 from flask_restful import abort
 
-from . import common, validators
+from . import common, validators, errors
 
 
 class Serializer:
@@ -19,7 +19,9 @@ class Serializer:
 
     def validate(self, d, accept_partial_data=False):
         if not d:
-            abort(400, errors='Cannot validate empty data.')
+            errors.BadRequestError(
+                ('DATA_CANNOT_BE_EMPTY', (d,), ([{'hello': 'world'}],)),
+            ).abort()
 
         d, _ = common.CollectionHelper.transform(d)
 
@@ -84,8 +86,9 @@ class DynamicSerializer(Serializer):
                 if invalid_fields:
                     # End-users have tried to project invalid fields, such
                     # as nonexistent fields or fields marked as not visible.
-                    abort(400, errors=['Unknown fields %s.' % invalid_fields],
-                          suggestions=['Available fields are %s.' % fields])
+                    errors.BadRequestError(
+                        ('INVALID_FIELDS', invalid_fields, ('%s?fields=%s' % (request.base_url, ','.join(fields)),))
+                    ).abort()
 
                 self._projected_fields = fields & request_fields
 

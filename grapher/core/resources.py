@@ -1,5 +1,6 @@
 import flask_restful
 from flask import request
+from cerberus import SchemaError
 
 from . import serializers, repositories, paginators, errors
 
@@ -60,9 +61,9 @@ class ModelResource(Resource):
 
     def __init__(self):
         if not self.schema:
-            raise errors.SchemaError('Schema is an essential part of a model-resource.'
-                                     'Define a valid schema or change %s to inherit from base-resource.'
-                                     % self.clean_name())
+            raise SchemaError('Schema is an essential part of a model-resource.'
+                              'Define a valid schema or change %s to inherit from base-resource.'
+                              % self.clean_name())
 
         identity_field = None
         for field, description in self.schema.items():

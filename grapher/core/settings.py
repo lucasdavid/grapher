@@ -2,9 +2,6 @@ import os
 
 
 class Settings:
-    TITLE = 'Grapher'
-    DESCRIPTION = 'Welcome to Grapher!'
-
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
     DEBUG = False
@@ -20,4 +17,16 @@ class Settings:
     #   Does not insert any of the entities, if False.
     ATTEMPT_PARTIAL_RECOVERIES = True
 
-    DOCS = {}
+    DOCS = {
+        'title': 'Grapher',
+        'description': 'Welcome to Grapher!',
+    }
+
+    ERRORS = {
+        'DATA_CANNOT_BE_EMPTY': {
+            'description': 'The requested action needs some data to process.',
+        },
+        'INVALID_FIELDS': {
+            'description': 'The requested fields %s are invalid.',
+        }
+    }
