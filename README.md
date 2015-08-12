@@ -6,7 +6,7 @@ Automatic back-end service generator based on resource schematics.
 This project is strongly inspired by
 [rest-framework](http://www.django-rest-framework.org/) and [eve-python](http://python-eve.org/).
 
-## Using it
+## Usage
 ### Basic
 #### Defining schematics
 Define your resources inside the **resources.py** file, inheriting from
@@ -189,13 +189,13 @@ class Task(resources.GraphModelResource):
 
 A valid event listener is any combination `(prefix + '_' + suffix)` from the two lists bellow:
 
-Prefixes
+**Prefixes**
 ```
 before
 after
 ```
 
-Suffixes
+**Suffixes**
 ```
 create
 update
