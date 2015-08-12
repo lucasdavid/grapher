@@ -37,6 +37,6 @@ class Docs(resources.Resource):
     def get(self):
         return self.response({
             'resources': self.describe_all(),
-            'title': settings.effective.TITLE,
-            'description': settings.effective.DESCRIPTION,
+            'title': settings.effective.DOCS['title'],
+            'description': settings.effective.DOCS['description'],
         })

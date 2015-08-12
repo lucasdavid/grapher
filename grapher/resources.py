@@ -3,7 +3,6 @@ from .core import resources
 
 class User(resources.GraphModelResource):
     description = 'users, such as students, professors and researches.'
-    methods = ('GET', 'POST', 'PUT', 'PATCH',)
 
     schema = {
         'name': {
@@ -30,7 +29,6 @@ class User(resources.GraphModelResource):
 
 class Department(resources.GraphModelResource):
     description = 'university\'s departments.'
-    methods = ('GET', 'POST',)
 
     schema = {
         'name': {

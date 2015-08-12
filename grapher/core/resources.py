@@ -27,7 +27,7 @@ class Resource(flask_restful.Resource):
         return cls.name or '%s' % cls.__name__
 
     @staticmethod
-    def response(content, **meta):
+    def response(content={}, status_code=200, **meta):
         result = {}
 
         if meta:
@@ -38,7 +38,7 @@ class Resource(flask_restful.Resource):
         else:
             result['content'] = content
 
-        return result
+        return result, status_code
 
     def _trigger(self, event, *args, **kwargs):
         """Triggers a specific event, in case it has been defined.
@@ -98,35 +98,60 @@ class ModelResource(Resource):
         return self._paginator
 
     def get(self):
-        d = self.repository.all()
-        d, fields = self.serializer.project(d)
-        d, page = self.paginator.paginate(d)
+        try:
+            d = self.repository.all()
+            d, fields = self.serializer.project(d)
+            d, page = self.paginator.paginate(d)
 
-        return self.response(d, projection=fields, page=page)
+            return self.response(d, projection=fields, page=page)
+
+        except errors.GrapherError as e:
+            return self.response(status_code=e.status_code, errors=e.as_api_response())
 
     def post(self):
-        entries, declined = self.serializer.validate(request.json)
+        try:
+            entries, declined = self.serializer.validate(request.json)
 
-        entries = self.repository.create(entries)
-        entries, fields = self.serializer.project(entries)
+            entries = self.repository.create(entries)
+            entries, fields = self.serializer.project(entries)
 
-        return self.response({'created': entries, 'failed': declined}, projection=fields)
+            return self.response({'created': entries, 'failed': declined}, projection=fields)
+
+        except errors.GrapherError as e:
+            return self.response(status_code=e.status_code, errors=e.as_api_response())
 
     def put(self):
-        entries, declined = self.serializer.validate(request.json)
+        try:
+            entries, declined = self.serializer.validate(request.json)
 
-        entries = self.repository.update(entries)
-        entries, fields = self.serializer.project(entries)
+            entries = self.repository.update(entries)
+            entries, fields = self.serializer.project(entries)
 
-        return self.response({'updated': entries, 'failed': declined}, projection=fields)
+            return self.response({'updated': entries, 'failed': declined}, projection=fields)
+
+        except errors.GrapherError as e:
+            return self.response(status_code=e.status_code, errors=e.as_api_response())
 
     def patch(self):
-        entries, declined = self.serializer.validate(request.json, accept_partial_data=True)
+        try:
+            entries, declined = self.serializer.validate(request.json, accept_partial_data=True)
 
-        entries = self.repository.update(entries)
-        entries, fields = self.serializer.project(entries)
+            entries = self.repository.update(entries)
+            entries, fields = self.serializer.project(entries)
 
-        return self.response({'updated': entries, 'failed': declined}, projection=fields)
+            return self.response({'updated': entries, 'failed': declined}, projection=fields)
+
+        except errors.GrapherError as e:
+            return self.response(status_code=e.status_code, errors=e.as_api_response())
+
+    def delete(self):
+        try:
+            entries, fields = self.serializer.project(request.json)
+
+            return self.response({'deleted': entries}, projection=fields)
+
+        except errors.GrapherError as e:
+            return self.response(status_code=e.status_code, errors=e.as_api_response())
 
 
 class GraphModelResource(ModelResource):

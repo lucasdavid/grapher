@@ -3,47 +3,35 @@ from .. import settings
 
 
 class GrapherError(RuntimeError):
-    pass
-
-
-class BadRequestError(GrapherError):
-    """Usually instantiated when it becomes clear the user has made a illicit request.
+    """Raised when it becomes clear that Grapher can no longer maintain the integrity of the current operation.
 
     A list of errors should be passed on instantiation. E.g.:
         ('INVALID_FIELDS', invalid_fields, fields)
         ('DATA_CANNOT_BE_EMPTY', data, [{'example': 10}])
-
-    Should be raised or instantiated, followed by :.abort() the call.
-
     """
+    status_code = 500
+
     def __init__(self, *errors):
         self.errors = errors
 
     def as_api_response(self):
-        """Return a dictionary which represents how bad is the request.
-
+        """Return a dictionary which represents a answer to the API user.
 
         :return: :dict: containing information about the errors raised.
         """
-        response = {
-            'uri': request.url,
-            'errors': {},
-        }
+        errors = {}
 
         for code, description, suggestions in self.errors:
             error = settings.effective.ERRORS[code].copy()
             error['description'] %= list(description)
             error['suggestions'] = list(suggestions)
 
-            response['errors'][code] = error
+            errors[code] = error
 
-        return response
+        return errors
 
-    def abort(self, status_code=400):
-        """Abort current API link, returning the data about the errors to the users.
 
-        :param status_code: the status that will be sent to the peer. Notice that,
-        as this class is called BadRequestError, you can only send 4** errors.
-        """
-        assert 400 <= status_code < 500
-        abort(status_code, **self.as_api_response())
+class BadRequestError(GrapherError):
+    """Raised when it becomes clear the user has made a illicit request.
+    """
+    status_code = 400
