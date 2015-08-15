@@ -1,8 +1,7 @@
 # Basics
 
 ## Introduction
-This file covers **Grapher** basics, such as models creation, projecting and paginating.
-
+This file covers **Grapher** basics, such as models creation, projecting and paginating. 
 If you haven't setup the project yet, go over the step-stones in 
 [SETUP.md](https://github.com/lucasdavid/grapher/blob/master/docs/SETUP.md) file.
 
@@ -75,7 +74,9 @@ response = requests.post('http://localhost/nice-departments', json=data)
 
 assert response.status_code == 200
 data = response.json()
-department_created = data['created']
+department = data['created']
+
+print('Department #%i: %s' % (department['_id'], department['name']))
 
 # I also accept lists for fast insertions!
 data = [{'name': 'Department %i' % i} for i in range(10)]
@@ -86,7 +87,7 @@ data = response.json()
 
 for department in data['created']:
     # List the ID of each department created.
-    print(department._id)
+    print(department['_id'])
 
 ```
 
