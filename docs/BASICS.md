@@ -10,7 +10,7 @@ If you haven't setup the project yet, go over the step-stones in
 On [grapher/settings.py](https://github.com/lucasdavid/grapher/blob/master/grapher/settings.py), fill
 `DevelopmentSettings.DATABASES` with your database's appropriate credentials.
 
-Use the manage.py to create a instance of a server.
+Use the `manage.py` to create a instance of a server.
 ```shell
 python manage.py runserver
 ```
@@ -18,8 +18,9 @@ python manage.py runserver
 
 ## Defining basic models
 
-Grapher is built over the concept of REST service. Each model created is exposed as a API Resource, 
-which will be consumed by client-side applications, such as web pages, mobile applications or other web services.
+Grapher is built over the concept of [REST](https://en.wikipedia.org/wiki/Representational_state_transfer). 
+Each model created is exposed as a API Resource, which will be consumed by client-side applications, 
+such as web pages, mobile applications or other web services.
 
 In order to define a model, simply go to the grapher/resources.py file and declare a subclass of `GraphModelResource`:
 
@@ -27,8 +28,8 @@ In order to define a model, simply go to the grapher/resources.py file and decla
 class Post(resources.GraphModelResource):
     schema = {
         'title': {'type': 'string'},
-        'lead': {'type': 'string', minlength: 4},
-        'body': {'type': 'string', minlength: 4},
+        'lead': {'type': 'string', 'minlength': 4},
+        'body': {'type': 'string', 'minlength': 4},
     }
 
 ```
@@ -56,7 +57,7 @@ Naturally, all canonical validation rules apply here.
 Please refer to their documentation when writing your own schematics.
 
 ## Interacting with resources
-
+### Creating
 After defining your RESTFul resources, your back-end is ready to accept interaction from front-end applications.
 For instance, you can create a new Department by sending a [POST request](https://en.wikipedia.org/wiki/POST_(HTTP))
 to `nice-departments` end-point.
@@ -90,7 +91,46 @@ for department in data['created']:
     print(department['_id'])
 
 ```
+### Updating
+You can use the **PATCH** and **PUT** methods to update your resources.
 
+```py
+import requests
+
+# Requests all departments (return a list with, at most, two elements).
+response = requests.get('http://localhost/nice-departments?limit=2')
+data = response.json()
+
+departments = data['content']
+names = ['Psychology', 'Computer Science']
+
+for i, department in enumerate(departments):
+    # Update each department's name.
+    department['name'] = names[i]
+
+# Requests patch over departments.
+response = requests.put('http://localhost/nice-departments', json=departments)
+assert response.status_code == 200
+
+```
+
+### Deleting
+
+```py
+import requests
+
+# Requests all departments (return a list with, at most, two elements).
+response = requests.get('http://localhost/nice-departments?limit=2')
+data = response.json()
+departments = data['content']
+ids = [d['_id'] for d in departments]
+ids = ','.join(ids)
+
+# Requests deletion of all departments that have one of those IDs.
+response = requests.delete('http://localhost/nice-departments?where={"_id__in":%s}' % ids)
+assert response.status_code == 200
+
+```
 
 ### Paginating
 You can control the flow of data that you receive.
