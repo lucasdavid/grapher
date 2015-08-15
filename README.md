@@ -20,6 +20,11 @@ If your goal is to develop a distributed/web application, take a look at Grapher
  usage, explaining how to declare resources and consume the service.
  * [docs/ADVANCED.md](https://github.com/lucasdavid/grapher/blob/master/docs/ADVANCED.md): covers advanced usage and
   customization of Grapher.
+  
+## TODO
+
+Any contributions are more than welcome. Please refer to the [issues page](https://github.com/lucasdavid/grapher/issues)
+to see what needs to be done or make your own suggestions.
 
 ## Testing
 

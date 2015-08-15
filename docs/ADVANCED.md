@@ -10,7 +10,14 @@ The following class exemplifies the available properties which are considered by
 from .core import resources, repositories, serializers
 
 class User(resources.ModelResource):
-    end_point = '/users'
+    name = 'CustomUser'
+    description = 'User\'s resource custom description'
+    end_point = 'custom-users'
+    
+    # Methods supported by Resource.
+    methods = ('GET', 'HEAD', 'OPTIONS', 'POST', 'PATCH', 'PUT', 'DELETE')
+    
+    # Persistence schema.
     schema = {
         'name': {
             'type': str,
