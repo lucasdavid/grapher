@@ -10,6 +10,9 @@ similar to [rest-framework](http://www.django-rest-framework.org/).
 
 If your goal is to develop a distributed/web application, take a look at Grapher's docs to see how we can help you! 
 
+---
+[![Build Status](https://travis-ci.org/lucasdavid/grapher.svg?branch=master)](https://travis-ci.org/lucasdavid/grapher)
+---
 
 ## Documentation
 
