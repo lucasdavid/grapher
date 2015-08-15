@@ -3,8 +3,10 @@
 ## Introduction
 Automatic back-end service generator based on resource schematics.
 
-This project is strongly inspired by
-[rest-framework](http://www.django-rest-framework.org/) and [eve-python](http://python-eve.org/).
+Grapher aims at high speed and high quality development of web
+[RESTFul APIs](https://en.wikipedia.org/wiki/Representational_state_transfer). The idea is to provide a automatic
+back-end - just like [eve-python](http://python-eve.org/) -, but without sacrificing customization -
+ similar to [rest-framework](http://www.django-rest-framework.org/).
 
 ## Documentation
 

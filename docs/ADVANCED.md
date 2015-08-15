@@ -63,12 +63,14 @@ class Task(resources.GraphModelResource):
 
 ## Using other databases
 
-It's perfectly natural if you don't feel Neo4J is the ideal database for you. In this case, just create a 
+It's perfectly plausible if you don't think Neo4J is the ideal database for your problem. In that case, just create a 
 `repositories.py` file in `grapher` and implement the interface `grapher.core.repositories.Repository`. For example,
 let's say you want to use [MongoDB](https://www.mongodb.org/):
 
 ```py
-class MongoRepository(metaclass=abc.ABCMeta):
+from .core import repositories
+
+class MongoRepository(repositories.Repository):
     def all(self, skip=0, limit=None):
         [...]
 
@@ -95,11 +97,15 @@ from .core import resources
 from . import repositories
 
 class Department(resources.ModelResource)
-    repository_class = repositories.MongoRepository
-    
     schema = {...}
 
+    repository_class = repositories.MongoRepository
+
 ```
+
+The `Department` resource is now handled by `MongoRepository`,
+which means its persistence is made by in a MongoDB database.
+
 
 ## Events
 Define a method with the name `('before_'|'after_').('create'|'update'|'delete')` in your resource. 
