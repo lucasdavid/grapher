@@ -120,14 +120,13 @@ assert response.status_code == 200
 import requests
 
 # Requests all departments (return a list with, at most, two elements).
-response = requests.get('http://localhost/nice-departments?limit=2')
+response = requests.get('http://localhost/nice-departments?limit=1')
 data = response.json()
 departments = data['content']
 ids = [d['_id'] for d in departments]
-ids = ','.join(ids)
 
-# Requests deletion of all departments that have one of those IDs.
-response = requests.delete('http://localhost/nice-departments?where={"_id__in":%s}' % ids)
+# Deletes the first Department retrieved.
+response = requests.delete('http://localhost/nice-departments/%s' % ids[0])
 assert response.status_code == 200
 
 ```
