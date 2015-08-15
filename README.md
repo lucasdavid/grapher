@@ -3,10 +3,13 @@
 ## Introduction
 Automatic back-end service generator based on resource schematics.
 
-Grapher aims at high speed and high quality development of web
+Grapher aims at high speed development of high quality web
 [RESTFul APIs](https://en.wikipedia.org/wiki/Representational_state_transfer). The idea is to provide a automatic
-back-end - just like [eve-python](http://python-eve.org/) -, but without sacrificing customization -
- similar to [rest-framework](http://www.django-rest-framework.org/).
+back-end - just like [eve-python](http://python-eve.org/) -, but without sacrificing the possibility of customization -
+similar to [rest-framework](http://www.django-rest-framework.org/).
+
+If your goal is to develop a distributed/web application, take a look at Grapher's docs to see how we can help you! 
+
 
 ## Documentation
 
