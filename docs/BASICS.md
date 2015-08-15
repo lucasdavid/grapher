@@ -22,14 +22,16 @@ Grapher is built over the concept of [REST](https://en.wikipedia.org/wiki/Repres
 Each model created is exposed as a API Resource, which will be consumed by client-side applications, 
 such as web pages, mobile applications or other web services.
 
-In order to define a model, simply go to the grapher/resources.py file and declare a subclass of `GraphModelResource`:
+In order to define a model, simply go to the `grapher/resources.py` file and declare a subclass of `GraphModelResource`:
 
 ```py
 class Post(resources.GraphModelResource):
     schema = {
         'title': {'type': 'string'},
-        'lead': {'type': 'string', 'minlength': 4},
-        'body': {'type': 'string', 'minlength': 4},
+        'lead': {'type': 'string'},
+        'body': {'type': 'string'},
+        'created_at': {'type': 'datetime'},
+        'times_seen': {'type': 'integer'},
     }
 
 ```
@@ -44,16 +46,14 @@ from .core import resources
 
 class Department(resources.GraphModelResource):
     end_point = '/nice-departments'
-    schema = {
-        'name': {'type': 'string'}
-    }
+    schema = {'name': {'type': 'string', 'required': True, 'minlength': 4}}
 
 ```
 
 Use [http://localhost/nice-departments](http://localhost/nice-departments) to manipulate the resource.
 
-Note: schematics are based on the awesome project [cerberus](docs.python-cerberus.org/).
-Naturally, all canonical validation rules apply here.
+Note: schematics are based on the awesome project [cerberus](http://docs.python-cerberus.org/).
+Naturally, all of their validation rules apply here.
 Please refer to their documentation when writing your own schematics.
 
 ## Interacting with resources
