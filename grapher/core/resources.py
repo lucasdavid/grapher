@@ -16,7 +16,13 @@ class Resource(flask_restful.Resource):
 
         :return: :str: the string representing the name of the resource.
         """
-        return cls.end_point or '/%s' % cls.clean_name().lower()
+        end_point = cls.end_point or cls.clean_name().lower()
+
+        if end_point[0] != '/':
+            # Add base slash, if it doesn't have it yet.
+            end_point = '/%s' % end_point
+
+        return end_point
 
     @classmethod
     def clean_name(cls):
@@ -154,5 +160,13 @@ class ModelResource(Resource):
             return self.response(status_code=e.status_code, errors=e.as_api_response())
 
 
+class RelationshipResource(ModelResource):
+    pass
+
+
 class GraphModelResource(ModelResource):
+    repository_class = repositories.GraphRepository
+
+
+class GraphRelationshipResource(RelationshipResource):
     repository_class = repositories.GraphRepository
