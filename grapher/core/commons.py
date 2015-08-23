@@ -70,3 +70,10 @@ class SchemaNavigator(metaclass=abc.ABCMeta):
                 identity = field
 
         return identity or '_id'
+
+
+class Cardinality(metaclass=abc.ABCMeta):
+    one = one_to_one = 1
+    one_to_many = 2
+    many_to_one = 3
+    many = many_to_many = 4

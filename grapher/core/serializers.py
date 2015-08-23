@@ -1,7 +1,7 @@
 from flask import request
 from flask_restful import abort
 
-from . import common, validators, errors
+from . import commons, validators, errors
 
 
 class Serializer:
@@ -17,27 +17,20 @@ class Serializer:
                                  {f for f, d in self.schema.items() if 'visible' not in d or d['visible']}
         return self._projected_fields
 
-    def validate(self, d, accept_partial_data=False):
+    def validate(self, d, require_identity=False):
         if not d:
             raise errors.BadRequestError(
                 ('DATA_CANNOT_BE_EMPTY', (d,), ([{'hello': 'world'}],)),
             )
 
-        d, _ = common.CollectionHelper.transform(d)
+        identity = commons.SchemaNavigator.identity_field_from(self.schema)
 
-        accepted = []
-        declined = {}
+        if require_identity:
+            self.schema[identity]['required'] = True
 
+        accepted, declined = [], {}
         v = validators.GrapherValidator(self.schema)
-
-        if accept_partial_data:
-            fields_to_restore = []
-            # If we're accepting partial data, that means nothing is required.
-            # This will be the case when doing patch updates.
-            for field, description in self.schema.items():
-                if 'required' in description and description['required']:
-                    description['required'] = False
-                    fields_to_restore.append(field)
+        d, _ = commons.CollectionHelper.transform(d)
 
         for i, e in enumerate(d):
             if v.validate(e):
@@ -45,16 +38,12 @@ class Serializer:
             else:
                 declined[i] = v.errors
 
-        if accept_partial_data:
-            # Many of the fields have had the "required" mark removed.
-            # Let's put them back again.
-            for field in fields_to_restore:
-                self.schema[field]['required'] = True
+        self.schema[identity]['required'] = False
 
         return accepted, declined
 
     def project(self, d):
-        d, transformed = common.CollectionHelper.transform(d)
+        d, transformed = commons.CollectionHelper.transform(d)
 
         # For each entry, remove all (key->value) pair that isn't in the set
         # of projected fields, which are private or non-requested fields.
@@ -62,7 +51,7 @@ class Serializer:
             for field in entry.keys() - self.projected_fields:
                 del entry[field]
 
-        return common.CollectionHelper.restore(d, transformed), list(self.projected_fields)
+        return commons.CollectionHelper.restore(d, transformed), list(self.projected_fields)
 
 
 class DynamicSerializer(Serializer):

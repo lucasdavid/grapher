@@ -18,7 +18,7 @@ class Docs(resources.Resource):
 
         :return: a set with pairs (resource-name->description).
         """
-        return {r.clean_name(): cls.describe(r) for r in cls.resources_to_describe}
+        return {r.real_name(): cls.describe(r) for r in cls.resources_to_describe}
 
     @classmethod
     def describe(cls, resource):
@@ -29,7 +29,7 @@ class Docs(resources.Resource):
         """
         return {
             'uri': resource.real_end_point(),
-            'description': resource.description or 'resource %s' % resource.clean_name(),
+            'description': resource.description or 'resource %s' % resource.real_name(),
             'schema': resource.schema,
             'methods': resource.methods
         }

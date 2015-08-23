@@ -28,5 +28,11 @@ class Settings:
         },
         'INVALID_FIELDS': {
             'description': 'The requested fields %s are invalid.',
+        },
+        'NOT_FOUND': {
+            'description': 'The entity %s was not found in the database.',
+        },
+        'UNIDENTIFIABLE': {
+            'description': 'This operation requires all instances to have an identity.',
         }
     }

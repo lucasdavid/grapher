@@ -1,22 +1,11 @@
 import inspect
-from flask import Flask
 from flask_restful import Api
 
 from . import resources as custom_resources
 from .core import resources, docs
 
 
-class Grapher(Flask):
-    """Grapher flask application.
-
-    Usage:
-        app = Grapher(__name__)
-        api = GrapherApi(app).startup()
-        app.run()
-    """
-
-
-class GrapherApi(Api):
+class Grapher(Api):
     @classmethod
     def _scan_resources(cls):
         """Scan project after subclasses of :Resource declared by the user. Then register them in the API.

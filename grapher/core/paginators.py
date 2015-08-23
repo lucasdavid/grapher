@@ -1,6 +1,6 @@
 from flask import request
 
-from . import common
+from . import commons
 
 
 class Paginator(object):
@@ -15,7 +15,7 @@ class Paginator(object):
         limit = limit or request.args.get('limit') or len(data)
         limit = isinstance(limit, int) and limit or int(limit)
 
-        data, _ = common.CollectionHelper.transform(data)
+        data, _ = commons.CollectionHelper.transform(data)
         total = len(data)
 
         content = data[skip:skip + limit]

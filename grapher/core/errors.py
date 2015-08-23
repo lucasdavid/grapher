@@ -1,4 +1,4 @@
-from flask_restful import request, abort
+from . import commons
 from .. import settings
 
 
@@ -8,6 +8,7 @@ class GrapherError(RuntimeError):
     A list of errors should be passed on instantiation. E.g.:
         ('INVALID_FIELDS', invalid_fields, fields)
         ('DATA_CANNOT_BE_EMPTY', data, [{'example': 10}])
+        ('NOT_FOUND', 1)
     """
     status_code = 500
 
@@ -21,12 +22,19 @@ class GrapherError(RuntimeError):
         """
         errors = {}
 
-        for code, description, suggestions in self.errors:
-            error = settings.effective.ERRORS[code].copy()
-            error['description'] %= list(description)
-            error['suggestions'] = list(suggestions)
+        for error in self.errors:
+            error, _ = commons.CollectionHelper.transform(error)
 
-            errors[code] = error
+            code = error[0]
+            e = settings.effective.ERRORS[code].copy()
+
+            if len(error) > 1:
+                e['description'] %= error[1]
+
+                if len(error) > 2:
+                    e['suggestions'] = error[2]
+
+            errors[code] = e
 
         return errors
 
@@ -35,3 +43,7 @@ class BadRequestError(GrapherError):
     """Raised when it becomes clear the user has made a illicit request.
     """
     status_code = 400
+
+
+class NotFoundError(BadRequestError):
+    status_code = 404
