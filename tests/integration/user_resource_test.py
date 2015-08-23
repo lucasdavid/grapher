@@ -57,15 +57,17 @@ class UserResourceTest(TestCase):
         self.assertEqual(user['email'], response_data['updated'][0]['email'])
 
     def test_patch(self):
-        response = requests.get(BASE_URL % 'user?limit=1')
-        user_id = response.json()['content'][0]['_id']
-
         user = fake_user()
+
+        response = requests.post(BASE_URL % 'user', json=[user])
+        user_id = response.json()['created'][0]['_id']
+
         user['_id'] = user_id
         del user['email']
         del user['password']
 
         response = requests.patch(BASE_URL % 'user', json=[user])
+        self.assertEqual(response.status_code, 200)
         response_data = response.json()
 
         self.assertIn('updated', response_data)
