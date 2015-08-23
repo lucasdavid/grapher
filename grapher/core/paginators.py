@@ -1,18 +1,19 @@
-from flask import request
-
+import flask
 from . import commons
 
 
-class Paginator(object):
+class Paginator:
+    request = flask.request
+
     @classmethod
     def paginate(cls, data, skip=None, limit=None):
-        url = request.url
-        base_url = request.base_url
+        url = cls.request.url
+        base_url = cls.request.base_url
 
-        skip = skip or request.args.get('skip') or 0
+        skip = skip or cls.request.args.get('skip') or 0
         skip = isinstance(skip, int) and skip or int(skip)
 
-        limit = limit or request.args.get('limit') or len(data)
+        limit = limit or cls.request.args.get('limit') or len(data)
         limit = isinstance(limit, int) and limit or int(limit)
 
         data, _ = commons.CollectionHelper.transform(data)

@@ -17,7 +17,8 @@ class CollectionHelper(metaclass=abc.ABCMeta):
         :return: :boolean:
         """
         return not isinstance(item, (list, tuple, set)) and \
-               not hasattr(item, '__iter__') or isinstance(item, dict) or issubclass(item.__class__, dict)
+               not hasattr(item, '__iter__') or isinstance(item, dict) or issubclass(item.__class__, dict) or \
+               isinstance(item, str)
 
     @classmethod
     def transform(cls, item):
@@ -42,9 +43,7 @@ class CollectionHelper(metaclass=abc.ABCMeta):
     @classmethod
     def enumerate(cls, item):
         item, transformed = cls.transform(item)
-
-        if item:
-            item = {i: e for i, e in enumerate(item)}
+        item = {i: e for i, e in enumerate(item)}
 
         return item, transformed
 

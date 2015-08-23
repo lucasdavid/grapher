@@ -5,10 +5,14 @@ from .. import settings
 class GrapherError(RuntimeError):
     """Raised when it becomes clear that Grapher can no longer maintain the integrity of the current operation.
 
-    A list of errors should be passed on instantiation. E.g.:
-        ('INVALID_FIELDS', invalid_fields, fields)
-        ('DATA_CANNOT_BE_EMPTY', data, [{'example': 10}])
-        ('NOT_FOUND', 1)
+    GrapherError implements the :as_api_response() method, which returns a dictionary as
+    (key)->(description, suggestions). If you wish to create custom errors, simply extend GrapherError and set the
+    appropriate status_code.
+
+    Errors should be passed on instantiation. E.g.:
+        'DATA_CANNOT_BE_EMPTY',
+        ('NOT_FOUND', 1),
+        ('INVALID_FIELDS', invalid_fields, example_fields)
     """
     status_code = 500
 
@@ -22,19 +26,23 @@ class GrapherError(RuntimeError):
         """
         errors = {}
 
-        for error in self.errors:
-            error, _ = commons.CollectionHelper.transform(error)
+        if 500 <= self.status_code < 600:
+            errors['INTERNAL_ERROR'] = settings.effective.ERRORS['INTERNAL_ERROR']
 
-            code = error[0]
-            e = settings.effective.ERRORS[code].copy()
+        else:
+            for error in self.errors:
+                error, _ = commons.CollectionHelper.transform(error)
 
-            if len(error) > 1:
-                e['description'] %= error[1]
+                code = error[0]
+                e = settings.effective.ERRORS[code].copy()
 
-                if len(error) > 2:
-                    e['suggestions'] = error[2]
+                if len(error) > 1:
+                    e['description'] %= error[1]
 
-            errors[code] = e
+                    if len(error) > 2:
+                        e['suggestions'] = error[2]
+
+                errors[code] = e
 
         return errors
 

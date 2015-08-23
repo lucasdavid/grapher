@@ -161,7 +161,7 @@ class ModelResource(SchematicResource):
             return (e[identity] for e in d)
 
         except KeyError:
-            raise errors.BadRequestError(('UNIDENTIFIABLE',))
+            raise errors.BadRequestError('UNIDENTIFIABLE')
 
     def _real_update(self, entries):
         entries, declined = self.serializer.validate(entries, require_identity=True)

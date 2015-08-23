@@ -23,6 +23,9 @@ class Settings:
     }
 
     ERRORS = {
+        'INTERNAL_ERROR': {
+            'description': 'The server experienced some difficulties when processing your request.',
+        },
         'DATA_CANNOT_BE_EMPTY': {
             'description': 'The requested action needs some data to process.',
         },
