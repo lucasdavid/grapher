@@ -4,19 +4,21 @@ from . import commons
 
 
 class Paginator(object):
-    __metaclass__ = abc.ABCMeta
+    _request = None
 
-    request = flask.request
+    @property
+    def request(self):
+        self._request = self._request or flask.request
+        return self._request
 
-    @classmethod
-    def paginate(cls, data, skip=None, limit=None):
-        url = cls.request.url
-        base_url = cls.request.base_url
+    def paginate(self, data, skip=None, limit=None):
+        url = self.request.url
+        base_url = self.request.base_url
 
-        skip = skip or cls.request.args.get('skip') or 0
+        skip = skip or self.request.args.get('skip') or 0
         skip = isinstance(skip, int) and skip or int(skip)
 
-        limit = limit or cls.request.args.get('limit') or len(data)
+        limit = limit or self.request.args.get('limit') or len(data)
         limit = isinstance(limit, int) and limit or int(limit)
 
         data, _ = commons.CollectionHelper.transform(data)

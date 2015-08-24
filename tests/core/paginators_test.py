@@ -15,8 +15,8 @@ class PaginatorTest(TestCase):
     def test_paginate(self):
         data = [1, 2, 3, 4]
 
-        p = paginators.Paginator
-        p.request = self.request
+        p = paginators.Paginator()
+        p._request = self.request
 
         content, page = p.paginate(data, 2, 2)
         self.assertEqual(len(content), 2)
