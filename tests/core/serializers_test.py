@@ -43,7 +43,7 @@ class SerializerTest(TestCase):
             result = [result]
 
         for entry in result:
-            entry_fields = entry.keys()
+            entry_fields = set(entry.keys())
 
             # No entry should have a field that isn't specified in fields.
             self.assertFalse(entry_fields - fields)
