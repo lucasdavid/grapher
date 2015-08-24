@@ -1,7 +1,7 @@
 import os
 
 
-class Settings:
+class Settings(object):
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
     DEBUG = False

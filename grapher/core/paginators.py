@@ -1,8 +1,11 @@
+import abc
 import flask
 from . import commons
 
 
-class Paginator:
+class Paginator(object):
+    __metaclass__ = abc.ABCMeta
+
     request = flask.request
 
     @classmethod

@@ -2,7 +2,9 @@ import abc
 from cerberus import SchemaError
 
 
-class CollectionHelper(metaclass=abc.ABCMeta):
+class CollectionHelper(object):
+    __metaclass__ = abc.ABCMeta
+
     """Helper for normalizing unknown structures into lists.
     """
 
@@ -54,7 +56,9 @@ class CollectionHelper(metaclass=abc.ABCMeta):
         return cls.restore(item, previously_transformed)
 
 
-class SchemaNavigator(metaclass=abc.ABCMeta):
+class SchemaNavigator(object):
+    __metaclass__ = abc.ABCMeta
+
     @classmethod
     def identity_from(cls, schema):
         # Let's assume :_id is the identity field.
@@ -88,7 +92,9 @@ class SchemaNavigator(metaclass=abc.ABCMeta):
         return cls
 
 
-class Cardinality(metaclass=abc.ABCMeta):
+class Cardinality(object):
+    __metaclass__ = abc.ABCMeta
+
     one = one_to_one = 1
     one_to_many = 2
     many_to_one = 3
