@@ -4,7 +4,7 @@ from flask_restful import abort
 from . import commons, validators, errors
 
 
-class Serializer(object):
+class Serializer:
     def __init__(self, schema):
         self.schema = schema
 

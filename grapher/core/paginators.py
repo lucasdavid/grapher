@@ -3,7 +3,7 @@ import flask
 from . import commons
 
 
-class Paginator(object):
+class Paginator:
     _request = None
 
     @property

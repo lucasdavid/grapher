@@ -6,9 +6,7 @@ from . import commons, errors
 from .. import settings
 
 
-class Repository(object):
-    __metaclass__ = abc.ABCMeta
-
+class Repository(metaclass=abc.ABCMeta):
     def __init__(self, label, schema):
         self.label = label
         self.schema = schema
