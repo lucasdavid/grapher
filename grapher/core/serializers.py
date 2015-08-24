@@ -23,10 +23,7 @@ class Serializer:
                 ('DATA_CANNOT_BE_EMPTY', (d,), ([{'hello': 'world'}],)),
             )
 
-        identity = commons.SchemaNavigator.identity_field_from(self.schema)
-
-        if require_identity:
-            self.schema[identity]['required'] = True
+        commons.SchemaNavigator.modify_identity_requirement(self.schema, require=require_identity)
 
         accepted, declined = [], {}
         v = validators.GrapherValidator(self.schema)
@@ -38,7 +35,7 @@ class Serializer:
             else:
                 declined[i] = v.errors
 
-        self.schema[identity]['required'] = False
+        commons.SchemaNavigator.modify_identity_requirement(self.schema, require=False)
 
         return accepted, declined
 

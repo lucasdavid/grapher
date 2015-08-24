@@ -31,7 +31,7 @@ to see what needs to be done or make your own suggestions.
 
 Use nose to test the project:
 ```shell
-nosetests
+$ nosetests
 ```
 
 A HTML-like report will be generated at `coverage/index.html`.

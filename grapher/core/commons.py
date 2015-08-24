@@ -56,7 +56,7 @@ class CollectionHelper(metaclass=abc.ABCMeta):
 
 class SchemaNavigator(metaclass=abc.ABCMeta):
     @classmethod
-    def identity_field_from(cls, schema):
+    def identity_from(cls, schema):
         # Let's assume :_id is the identity field.
         identity = None
 
@@ -69,6 +69,23 @@ class SchemaNavigator(metaclass=abc.ABCMeta):
                 identity = field
 
         return identity or '_id'
+
+    @classmethod
+    def add_identity(cls, schema):
+        identity = cls.identity_from(schema)
+
+        if identity not in schema:
+            # Don't do anything in case there's a identity already.
+            schema[identity] = {'type': 'integer', 'identity': True}
+
+        return cls
+
+    @classmethod
+    def modify_identity_requirement(cls, schema, require=True):
+        identity = cls.add_identity(schema).identity_from(schema)
+        schema[identity]['required'] = require
+
+        return cls
 
 
 class Cardinality(metaclass=abc.ABCMeta):

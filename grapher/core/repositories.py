@@ -10,7 +10,7 @@ class Repository(metaclass=abc.ABCMeta):
     def __init__(self, label, schema):
         self.label = label
         self.schema = schema
-        self.identity = commons.SchemaNavigator.identity_field_from(schema)
+        self.identity = commons.SchemaNavigator.identity_from(schema)
 
     def all(self, skip=0, limit=None):
         raise NotImplementedError

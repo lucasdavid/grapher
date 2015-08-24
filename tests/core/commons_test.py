@@ -20,7 +20,7 @@ class SchemaNavigatorTest(TestCase):
         expected = '_id'
 
         for schema in schemas:
-            actual = commons.SchemaNavigator.identity_field_from(schema)
+            actual = commons.SchemaNavigator.identity_from(schema)
             self.assertEqual(expected, actual, schema)
 
     def test_schemas_with_identity(self):
@@ -35,7 +35,7 @@ class SchemaNavigatorTest(TestCase):
 
         for i, schema in enumerate(schemas):
             expected = expected_sequence[i]
-            actual = commons.SchemaNavigator.identity_field_from(schema)
+            actual = commons.SchemaNavigator.identity_from(schema)
             self.assertEqual(expected, actual, schema)
 
     def test_schema_with_two_identities(self):
@@ -45,7 +45,7 @@ class SchemaNavigatorTest(TestCase):
         }
 
         with self.assertRaises(SchemaError):
-            commons.SchemaNavigator.identity_field_from(schema)
+            commons.SchemaNavigator.identity_from(schema)
 
 
 class CollectionHelper(TestCase):

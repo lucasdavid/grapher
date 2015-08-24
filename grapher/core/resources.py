@@ -82,9 +82,7 @@ class SchematicResource(Resource):
         if not self.schema:
             self.schema = {}
 
-        identity = commons.SchemaNavigator.identity_field_from(self.schema)
-        if identity not in self.schema:
-            self.schema[identity] = {'type': 'integer', 'identity': True}
+        commons.SchemaNavigator.add_identity(self.schema)
 
     _repository = None
 
@@ -156,7 +154,7 @@ class ModelResource(SchematicResource):
             return self.response(status_code=e.status_code, errors=e.as_api_response())
 
     def _get_identities(self, d):
-        identity = commons.SchemaNavigator.identity_field_from(self.schema)
+        identity = commons.SchemaNavigator.identity_from(self.schema)
         try:
             return (e[identity] for e in d)
 
@@ -199,13 +197,13 @@ class RelationshipResource(SchematicResource):
 
         # Injecting :_origin and :_target properties in schema.
         # They are fundamental as this is a relationship resource.
-        identity = commons.SchemaNavigator.identity_field_from(self.origin.schema)
+        identity = commons.SchemaNavigator.identity_from(self.origin.schema)
         self.schema['_origin'] = {
             'required': True,
             'type': identity in self.origin.schema and self.origin.schema[identity]['type'] or 'integer'
         }
 
-        identity = commons.SchemaNavigator.identity_field_from(self.target.schema)
+        identity = commons.SchemaNavigator.identity_from(self.target.schema)
         self.schema['_target'] = {
             'required': True,
             'type': identity in self.target.schema and self.target.schema[identity]['type'] or 'integer'
