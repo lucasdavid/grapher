@@ -1,5 +1,6 @@
-# Grapher [![Build Status](https://travis-ci.org/lucasdavid/grapher.svg?branch=master)](https://travis-ci.org/lucasdavid/grapher)
+# Grapher
 
+[![Build Status](https://travis-ci.org/lucasdavid/grapher.svg?branch=master)](https://travis-ci.org/lucasdavid/grapher)
 
 ## Introduction
 Automatic back-end service generator based on resource schematics.
@@ -30,13 +31,7 @@ to see what needs to be done or make your own suggestions.
 
 Use nose to test the project:
 ```shell
-# Runs all tests inside tests.unit
 nosetests
-
-# Runs integration tests
-nosetests --tests tests.integration
-
-# Runs everything
-nosetests --tests tests
-
 ```
+
+A HTML-like report will be generated at `coverage/index.html`.
