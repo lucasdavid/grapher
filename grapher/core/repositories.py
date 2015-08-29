@@ -24,10 +24,7 @@ class Repository(metaclass=abc.ABCMeta):
     def create(self, entities):
         raise NotImplementedError
 
-    def link(self, relationship, origin, target, properties=None):
-        raise NotImplementedError
-
-    def link_many(self, links):
+    def link(self, links):
         raise NotImplementedError
 
     def find_link(self, origin=None, target=None):
@@ -131,31 +128,8 @@ class GraphRepository(Repository):
 
         return nodes
 
-    def _sync_relationships(self, nodes, d):
-        creating, removing = [], []
-
-        expected_relationships = {f for f in self.schema if 'relationship' in f}
-
-        for i, node in enumerate(nodes):
-            entry = d[i]
-
-            for f in entry.keys() & expected_relationships:
-                rel = f.upper()
-
-                node_existing = set(node.match(rel))
-                node_creating = {Relationship(node, rel, self.g.node(i)) for i in
-                                 commons.CollectionHelper.transform(entry[f])}
-
-                # Remove all that are not in creating.
-                removing += list(node_existing - node_creating)
-                # Remove all that were already created.
-                creating += list(node_creating - node_existing)
-
-        self.g.delete(*removing)
-        self.g.create_unique(*creating)
-
     def all(self, skip=0, limit=None):
-        nodes = self.g.find(self.label, limit=limit)
+        nodes = self.g.find(self.label, limit=skip + limit)[skip:]
         return self._data_from_nodes(nodes)
 
     def find(self, identities):
@@ -164,7 +138,7 @@ class GraphRepository(Repository):
 
         try:
             self.g.pull(*nodes)
-        except py2neo.GraphError as e:
+        except py2neo.GraphError:
             raise errors.NotFoundError(
                 ('NOT_FOUND', identities)
             )
@@ -185,7 +159,7 @@ class GraphRepository(Repository):
 
         return self._data_from_nodes(nodes)
 
-    def link(self, relationship, origin, target, properties=None):
+    def _link(self, relationship, origin, target, properties=None):
         properties = properties or {}
 
         origin = self.g.node(origin)
@@ -193,8 +167,8 @@ class GraphRepository(Repository):
 
         return Relationship(origin, relationship.upper(), target, **properties)
 
-    def link_many(self, links):
-        relationships = [self.link(*l) for l in links]
+    def link(self, links):
+        relationships = [self._link(*l) for l in links]
         return self.g.create(relationships)
 
     def find_link(self, origin=None, target=None):

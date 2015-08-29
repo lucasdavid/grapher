@@ -23,7 +23,7 @@ class Resource(flask_restful.Resource):
 
         :return: :str: the string representing the name of the resource.
         """
-        end_point = cls.end_point or cls.real_name().lower()
+        end_point = (cls.end_point or cls.real_name()).lower()
 
         if end_point[0] != '/':
             # Add base slash, if it doesn't have it yet.
@@ -46,16 +46,21 @@ class Resource(flask_restful.Resource):
         if meta:
             result['_meta'] = meta
 
-        if content:
+        if content is not None:
             if wrap:
                 result['content'] = content
             else:
-                if not isinstance(content, dict):
+                if isinstance(content, dict):
+                    result.update(content)
+                elif not meta:
+                    # No metadata to add, content is the very whole response.
+                    result = content
+                else:
+                    # There's metadata to add, but the user didn't specified if the content to be wrapped.
+                    # Since the content isn't a dictionary, merging isn't possible.
                     raise RuntimeError(
                         'Cannot merge %s into result dictionary. Please define '
                         'content as a dictionary or set wrap to True.' % str(content))
-
-                result.update(content)
 
         return result, status_code
 
