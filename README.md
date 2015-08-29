@@ -1,6 +1,7 @@
 # Grapher
 
 [![Build Status](https://travis-ci.org/lucasdavid/grapher.svg?branch=master)](https://travis-ci.org/lucasdavid/grapher)
+[![Coverage Status](https://coveralls.io/repos/lucasdavid/grapher/badge.svg?branch=master&service=github)](https://coveralls.io/github/lucasdavid/grapher?branch=master)
 
 ## Introduction
 Automatic back-end service generator based on resource schematics.
