@@ -6,3 +6,6 @@ branch = True
 exclude_lines =
     raise NotImplementedError
     if __name__ == .__main__.:
+omit =
+    */python?.?/*
+    */site-packages/nose/*
