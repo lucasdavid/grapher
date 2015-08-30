@@ -1,7 +1,8 @@
+import importlib
 import flask_restful
-from flask import request, jsonify
+from flask import request
 
-from . import serializers, repositories, paginators, errors, commons
+from . import settings, serializers, repositories, paginators, errors, commons
 
 
 class Resource(flask_restful.Resource):
@@ -47,13 +48,21 @@ class Resource(flask_restful.Resource):
         }
 
     @staticmethod
-    def response(content=None, status_code=200, wrap=False, **meta):
+    def response(content=None, status_code=200, wrap=False, remove_empty_keys=False, **meta):
         result = {}
 
         if meta:
             result['_meta'] = meta
 
         if content is not None:
+            if remove_empty_keys:
+                if not isinstance(content, dict):
+                    raise ValueError('Cannot remove empty keys if content is not a dictionary.')
+
+                for k in content.keys():
+                    if not content[k]:
+                        del content[k]
+
             if wrap:
                 result['content'] = content
             else:
@@ -140,7 +149,9 @@ class ModelResource(SchematicResource):
             entries = self.repository.create(entries)
             entries, fields = self.serializer.project(entries)
 
-            return self.response({'created': entries, 'failed': declined}, projection=fields)
+            return self.response({'created': entries, 'failed': declined},
+                                 remove_empty_keys=True,
+                                 projection=fields)
 
         except errors.GrapherError as e:
             return self.response(status_code=e.status_code, errors=e.as_api_response())
@@ -189,7 +200,9 @@ class ModelResource(SchematicResource):
         entries = self.repository.update(entries)
         entries, fields = self.serializer.project(entries)
 
-        return self.response({'updated': entries, 'failed': declined}, projection=fields)
+        return self.response({'updated': entries, 'failed': declined},
+                             remove_empty_keys=True,
+                             projection=fields)
 
     def delete(self):
         try:
@@ -213,9 +226,24 @@ class RelationshipResource(SchematicResource):
         if not self.origin or not self.target:
             raise ValueError('Relationship resources must have a valid origin and target attribute set.')
 
-        if not 0 < self.cardinality < 5:
-            raise ValueError('Cardinality must be an integer in [1, 5) range. Instead, %s given.'
-                             % str(self.cardinality))
+        defined_resources = importlib.import_module('%s.%s' % (settings.effective.BASE_MODULE, 'resources'))
+
+        # If references are strings, import the actual classes.
+        if isinstance(self.origin, str):
+            self.origin = getattr(self.origin, defined_resources)
+        if isinstance(self.target, str):
+            self.origin = getattr(self.target, defined_resources)
+
+        # Make sure classes are ModelResource subclass, as they are databases' entities.
+        if not issubclass(self.origin, ModelResource):
+            raise ValueError(
+                'Origin references {%s}. Try a ModelResource subclass instead.' % ModelResource.__name__)
+        if not issubclass(self.target, ModelResource):
+            raise ValueError(
+                'Target references {%s}. Try a ModelResource subclass instead.' % ModelResource.__name__)
+
+        if self.cardinality != '1' and self.cardinality != '*':
+            raise ValueError('Cardinality must be "1" or "*" and %s was given.' % str(self.cardinality))
 
         # Injecting :_origin and :_target properties in schema.
         # They are fundamental as this is a relationship resource.
@@ -240,7 +268,26 @@ class RelationshipResource(SchematicResource):
             links = self.repository.find_link(origin=identity)
             links, fields = self.serializer.project(links)
 
+            if self.cardinality == commons.Cardinality.one and len(links):
+                links = links[0]
+
             return self.response(links, wrap=True, projection=fields)
+
+        except errors.GrapherError as e:
+            return self.response(status_code=e.status_code, errors=e.as_api_response())
+
+    def post(self, identity):
+        try:
+            links, _ = commons.CollectionHelper.transform(request.json)
+
+            if self.cardinality == commons.Cardinality.one and len(links) > 1:
+                raise errors.BadRequestError('CARDINALITY_1_MISMATCH')
+
+            links, declined = self.serializer.validate(links)
+            links = self.repository.link(links)
+            links, fields = self.serializer.project(links)
+
+            return self.response({'created': links, 'failed': declined}, projection=fields)
 
         except errors.GrapherError as e:
             return self.response(status_code=e.status_code, errors=e.as_api_response())
@@ -252,6 +299,7 @@ class RelationshipResource(SchematicResource):
             relationship={
                 'origin': cls.origin.real_name(),
                 'target': cls.target.real_name(),
+                'cardinality': cls.cardinality
             }
         )
 

@@ -4,6 +4,10 @@ from .core.commons import Cardinality
 
 class Home(resources.Resource):
     description = 'Grapher\'s Home Page'
+    methods = ('GET',)
+
+    def get(self):
+        return self.response('hello-world', wrap=True)
 
 
 class User(resources.GraphModelResource):

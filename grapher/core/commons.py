@@ -89,7 +89,5 @@ class SchemaNavigator(metaclass=abc.ABCMeta):
 
 
 class Cardinality(metaclass=abc.ABCMeta):
-    one = one_to_one = 1
-    one_to_many = 2
-    many_to_one = 3
-    many = many_to_many = 4
+    one = '1'
+    many = '*'

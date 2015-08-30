@@ -40,6 +40,9 @@ class Settings:
         },
         'UNIDENTIFIABLE': {
             'description': 'This operation requires all instances to have an identity.',
+        },
+        'CARDINALITY_1_MISMATCH': {
+            'description': 'This relationship has cardinality 1 and does not consume lists with many elements.',
         }
     }
 
