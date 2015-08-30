@@ -2,6 +2,10 @@ from .core import resources
 from .core.commons import Cardinality
 
 
+class Home(resources.Resource):
+    description = 'Grapher\'s Home Page'
+
+
 class User(resources.GraphModelResource):
     description = 'users, such as students, professors and researches.'
 
