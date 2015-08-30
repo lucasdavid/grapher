@@ -27,14 +27,14 @@ class GraphRepositoryTest(TestCase):
             'test1': {'type': 'integer'},
             'test2': {'type': 'string'},
         }
-        self.data = [fake_node() for _ in range(20)]
+        self.data = (fake_node() for _ in range(20))
 
         graph = Mock()
-        graph.find = Mock(side_effect=lambda label, limit: self.data[:limit])
+        graph.find = Mock(side_effect=lambda label, limit: (fake_node() for _ in range(limit)))
         graph.node = Mock(side_effect=lambda i: fake_node())
         graph.pull = Mock()
         graph.push = Mock()
-        graph.create = Mock(side_effect=lambda *e: [fake_node() for _ in range(len(e))])
+        graph.create = Mock(side_effect=lambda *e: (fake_node() for _ in range(len(e))))
         graph.delete = Mock(side_effect=lambda *e: e)
 
         self.r = GraphRepository(self.label, self.schema)
@@ -47,17 +47,8 @@ class GraphRepositoryTest(TestCase):
 
         self.r._g.find.assert_called_once_with(self.label, limit=skip + limit)
 
+        actual = list(actual)
         self.assertEqual(len(actual), limit)
-        self.assertDictEqual(actual[0], self.data[2].properties)
-        self.assertDictEqual(actual[9], self.data[11].properties)
-
-    def test_all_empty_data(self):
-        skip, limit = 2, 10
-        self.data = []
-
-        actual = self.r.all(skip, limit)
-
-        self.assertEqual(len(actual), 0)
 
     def test_find(self):
         identities = [1, 2, 3]
