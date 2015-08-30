@@ -2,7 +2,9 @@ from . import resources, settings
 
 
 class Docs(resources.Resource):
-    """Docs resource, used for the API's auto-documenting feature.
+    """Docs resource, used for the API auto-documentation.
+
+    This resource is registered automatically on Graph start-up.
     """
 
     end_point = '/'
@@ -11,31 +13,9 @@ class Docs(resources.Resource):
     # Dynamically filled during start-up.
     resources_to_describe = ()
 
-    @classmethod
-    def describe_all(cls):
-        """Retrieve description of all resources declared in :resources_to_describe.
-
-        :return: a set with pairs (resource-name->description).
-        """
-        return {r.real_name(): cls.describe(r) for r in cls.resources_to_describe}
-
-    @classmethod
-    def describe(cls, resource):
-        """Retrieve description of a given :resource.
-
-        :param resource: the :BaseResource subclass that will be described.
-        :return: the description generated.
-        """
-        return {
-            'uri': resource.real_end_point(),
-            'description': resource.description or 'resource %s' % resource.real_name(),
-            'schema': resource.schema,
-            'methods': resource.methods
-        }
-
     def get(self):
         return self.response({
-            'resources': self.describe_all(),
             'title': settings.effective.DOCS['title'],
             'description': settings.effective.DOCS['description'],
+            'resources': {r.real_name(): r.describe() for r in self.resources_to_describe},
         })

@@ -44,7 +44,7 @@ class Settings:
     }
 
 
-class DevelopmentSettings(Settings):
+class Development(Settings):
     DEBUG = True
     TESTING = True
 
@@ -57,13 +57,13 @@ class DevelopmentSettings(Settings):
     }
 
 
-class ProductionSettings(Settings):
+class Production(Settings):
     DEBUG = False
     TESTING = False
 
 
-class TestingSettings(Settings):
+class Testing(Settings):
     TESTING = True
 
 
-effective = DevelopmentSettings
+effective = Development

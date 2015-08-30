@@ -26,7 +26,7 @@ class Repository(metaclass=abc.ABCMeta):
     def link(self, links):
         raise NotImplementedError
 
-    def find_link(self, origin=None, target=None):
+    def find_link(self, origin=None, target=None, limit=None):
         raise NotImplementedError
 
     def update(self, entities):
@@ -180,14 +180,14 @@ class GraphRepository(Repository):
         relationships = [self._link(*l) for l in links]
         return self.g.create(relationships)
 
-    def find_link(self, origin=None, target=None):
+    def find_link(self, origin=None, target=None, limit=None):
         if origin:
             origin = self.g.node(origin)
 
         if target:
             target = self.g.node(target)
 
-        links = self.g.match(origin, self.label.upper(), target)
+        links = self.g.match(origin, self.label.upper(), target, limit=limit)
         return self._data_from_links(links)
 
     def update(self, entities):

@@ -1,5 +1,5 @@
 import flask_restful
-from flask import request
+from flask import request, jsonify
 
 from . import serializers, repositories, paginators, errors, commons
 
@@ -38,6 +38,14 @@ class Resource(flask_restful.Resource):
         """
         return cls.name or '%s' % cls.__name__
 
+    @classmethod
+    def describe(cls):
+        return {
+            'uri': cls.real_end_point(),
+            'description': cls.description or 'resource %s' % cls.real_name(),
+            'methods': cls.methods,
+        }
+
     @staticmethod
     def response(content=None, status_code=200, wrap=False, **meta):
         result = {}
@@ -75,6 +83,9 @@ class Resource(flask_restful.Resource):
         if method:
             return method(*args, **kwargs)
 
+    def options(self):
+        return self.describe()
+
 
 class SchematicResource(Resource):
     schema = {}
@@ -101,6 +112,13 @@ class SchematicResource(Resource):
     def serializer(self):
         self._serializer = self._serializer or self.serializer_class(self.schema)
         return self._serializer
+
+    @classmethod
+    def describe(cls):
+        d = super().describe()
+        d.update(schema=cls.schema)
+
+        return d
 
 
 class ModelResource(SchematicResource):
@@ -221,10 +239,23 @@ class RelationshipResource(SchematicResource):
         try:
             links = self.repository.find_link(origin=identity)
             links, fields = self.serializer.project(links)
+
             return self.response(links, wrap=True, projection=fields)
 
         except errors.GrapherError as e:
             return self.response(status_code=e.status_code, errors=e.as_api_response())
+
+    @classmethod
+    def describe(cls):
+        d = super().describe()
+        d.update(
+            relationship={
+                'origin': cls.origin.real_name(),
+                'target': cls.target.real_name(),
+            }
+        )
+
+        return d
 
 
 class GraphModelResource(ModelResource):
