@@ -1,6 +1,6 @@
 from unittest import TestCase
 from grapher.core import errors
-from grapher.core.settings import TestingSettings
+from grapher.core.settings import Testing
 
 
 class GrapherErrorTest(TestCase):
@@ -31,4 +31,4 @@ class BadRequestErrorTest(TestCase):
         self.assertEqual(len(response), 3)
 
         for code, error in response.items():
-            self.assertIn(code, TestingSettings.ERRORS)
+            self.assertIn(code, Testing.ERRORS)
