@@ -1,5 +1,4 @@
-from . import resources
-from .. import settings
+from . import resources, settings
 
 
 class Docs(resources.Resource):

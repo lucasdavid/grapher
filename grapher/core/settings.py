@@ -2,7 +2,10 @@ import os
 
 
 class Settings:
+    BASE_MODULE = 'grapher'
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+
+    SECRET_KEY = None
 
     DEBUG = False
     TESTING = False
@@ -39,3 +42,28 @@ class Settings:
             'description': 'This operation requires all instances to have an identity.',
         }
     }
+
+
+class DevelopmentSettings(Settings):
+    DEBUG = True
+    TESTING = True
+
+    DATABASES = {
+        'default': {
+            'uri': '127.0.0.1:7474/db/data/',
+            'username': 'neo4j',
+            'password': 'root',
+        }
+    }
+
+
+class ProductionSettings(Settings):
+    DEBUG = False
+    TESTING = False
+
+
+class TestingSettings(Settings):
+    TESTING = True
+
+
+effective = DevelopmentSettings

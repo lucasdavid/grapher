@@ -1,5 +1,4 @@
-from . import commons
-from .. import settings
+from . import commons, settings
 
 
 class GrapherError(RuntimeError):

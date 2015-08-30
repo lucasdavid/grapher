@@ -1,14 +1,10 @@
-from flask import Flask
 from flask.ext.script import Manager, Server
-from grapher import Grapher
+from grapher.core.grapher import Grapher
 
 if __name__ == "__main__":
-    app = Flask(__name__)
-    app.config.from_object('grapher.settings.DevelopmentSettings')
+    grapher = Grapher(__name__)
 
-    api = Grapher(app).startup()
-
-    manager = Manager(app)
+    manager = Manager(grapher.app)
     manager.add_command('runserver', Server(port=80))
 
     manager.run()

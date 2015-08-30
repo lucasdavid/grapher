@@ -2,8 +2,7 @@ import abc
 import py2neo
 from py2neo import Graph, Node, Relationship
 
-from . import commons, errors
-from .. import settings
+from . import commons, errors, settings
 
 
 class Repository(metaclass=abc.ABCMeta):
@@ -129,7 +128,17 @@ class GraphRepository(Repository):
         return nodes
 
     def all(self, skip=0, limit=None):
-        nodes = self.g.find(self.label, limit=skip + limit)[skip:]
+        if limit is not None:
+            # Neo4J doesn't accept a :skip parameter, perhaps because the nodes
+            # order might eventually change. If we've limited the number of entries returned,
+            # we must add the number of entries skipped as well, so they can be removed by the serializer.
+            limit += skip
+
+        nodes = self.g.find(self.label, limit=limit)
+
+        # Discard :skip elements.
+        for _ in range(skip): next(nodes)
+
         return self._data_from_nodes(nodes)
 
     def find(self, identities):
