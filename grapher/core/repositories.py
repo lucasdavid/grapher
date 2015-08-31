@@ -129,7 +129,7 @@ class GraphRepository(Repository):
             return d
 
         links = []
-        links, transformed = commons.CollectionHelper.transform(links)
+        d, transformed = commons.CollectionHelper.transform(d)
 
         for e in d:
             if self.identity in e:
