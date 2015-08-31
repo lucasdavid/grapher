@@ -9,15 +9,26 @@ import py2neo
 f = Faker()
 
 
-def fake_node():
+def fake_node(**properties):
     node = Mock()
-    node.__id = f.random_int(min=0, max=1000)
+
+    node._id = properties.get('id', f.random_int(min=0, max=100))
     node.properties = {
-        'test1': f.random_int(min=0, max=100),
-        'test2': f.name(),
+        'test1': properties.get('test1', f.random_int(min=0, max=100)),
+        'test2': properties.get('test1', f.name()),
     }
 
     return node
+
+
+def fake_relationship(link):
+    rel = Mock()
+    rel.properties = link.properties
+    rel._id = f.random_int(min=0, max=1000)
+    rel.start_node = fake_node()
+    rel.end_node = fake_node()
+
+    return rel
 
 
 class GraphRepositoryTest(TestCase):
@@ -98,8 +109,20 @@ class GraphRepositoryTest(TestCase):
 
     def test_link(self):
         self.r._g.node = Mock(side_effect=lambda i: py2neo.Node(self.label))
-        relationships = [('TESTS', 1, 2, {'test': 10})]
+
+        self.r._g.create = Mock(side_effect=lambda links: (fake_relationship(l) for l in links))
+        relationships = [
+            {
+                '_origin': 1,
+                '_target': 2,
+                'test1': 10,
+            }
+        ]
 
         result = self.r.link(relationships)
 
-        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]['test1'], 10)
+        self.assertIn('_origin', result[0])
+        self.assertIn('_target', result[0])
