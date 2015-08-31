@@ -104,7 +104,7 @@ class Resource(flask_restful.Resource):
 class SchematicResource(Resource):
     schema = {}
 
-    repository_class = repositories.Repository
+    repository_class = repositories.base.Repository
     serializer_class = serializers.DynamicSerializer
 
     def __init__(self):
@@ -143,7 +143,7 @@ class EntityResource(SchematicResource):
     def __init__(self):
         super().__init__()
 
-        assert issubclass(self.repository_class, repositories.EntityRepository)
+        assert issubclass(self.repository_class, repositories.base.EntityRepository)
 
     def get(self):
         try:
@@ -276,7 +276,7 @@ class RelationshipResource(SchematicResource):
             'type': self.target.schema[identity]['type']
         }
 
-        assert issubclass(self.repository_class, repositories.RelationshipRepository)
+        assert issubclass(self.repository_class, repositories.base.RelationshipRepository)
 
     @classmethod
     def real_end_point(cls):
