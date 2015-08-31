@@ -32,5 +32,15 @@ class Founder(resources.GraphRelationshipResource):
     cardinality = Cardinality.one
 
     schema = {
+        'at': {'type': 'datetime'}
+    }
+
+
+class Members(resources.GraphRelationshipResource):
+    origin = Group
+    target = User
+    cardinality = Cardinality.many
+
+    schema = {
         'since': {'type': 'string'}
     }

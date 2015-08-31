@@ -58,20 +58,46 @@ class GraphRepository(Repository):
         :param nodes: the list of nodes to be projected.
         :return: a list of dictionaries that represent the nodes's attributes.
         """
-        if nodes is None:
-            return None
+        if not nodes:
+            return nodes
 
         entries = []
-
         nodes, transformed = commons.CollectionHelper.transform(nodes)
 
         for node in nodes:
-            entry = node.properties
-            entry[self.identity] = node._id
+            e = node.properties
+            e[self.identity] = node._id
 
-            entries.append(entry)
+            entries.append(e)
 
         return commons.CollectionHelper.restore(entries, transformed)
+
+    def _nodes_from_data(self, d):
+        """Retrieve nodes from data contained in plain dictionaries.
+
+        :param d: the list of dictionaries.
+        :return: a list of nodes created from the data contained in :d.
+        """
+        if not d:
+            return d
+
+        nodes = []
+        d, transformed = commons.CollectionHelper.transform(d)
+
+        for e in d:
+            # Find if the node exists on the database or is a new node.
+            if self.identity in e:
+                # The entry claims to have an identity, bind the node to a database node.
+                node = self.g.node(e[self.identity])
+                del e[self.identity]
+            else:
+                # That's a new entry. Create a new node.
+                node = Node(self.label)
+
+            node.properties.update(e)
+            nodes.append(node)
+
+        return nodes
 
     def _data_from_links(self, links):
         """Retrieve links' attributes.
@@ -82,50 +108,50 @@ class GraphRepository(Repository):
         :param links: the list of links to be projected.
         :return: a list of dictionaries that represent the links's attributes.
         """
-        if links is None:
-            return None
+        if not links:
+            return links
 
         entries = []
         links, transformed = commons.CollectionHelper.transform(links)
 
         for link in links:
-            entry = link.properties
-            entry[self.identity] = link._id
-            entry['_origin'] = link.start_node._id
-            entry['_target'] = link.end_node._id
+            e = link.properties
+            e[self.identity] = link._id
+            e['_origin'] = link.start_node._id
+            e['_target'] = link.end_node._id
 
-            entries.append(entry)
+            entries.append(e)
 
         return commons.CollectionHelper.restore(entries, transformed)
 
-    def _nodes_from_data(self, d):
-        """Retrieve nodes from data contained in plain dictionaries.
+    def _links_from_data(self, d):
+        if not d:
+            return d
 
-        :param d: the list of dictionaries.
-        :return: a list of nodes created from the data contained in :d.
-        """
-        nodes = []
-        d, transformed = commons.CollectionHelper.transform(d)
+        links = []
+        links, transformed = commons.CollectionHelper.transform(links)
 
-        for entry in d:
-            # Find if the node exists on the database or is a new node.
-            if self.identity in entry:
-                # The entry claims to have an identity!
-                # Let's bind the node to a database node.
-                node = self.g.node(entry[self.identity])
-
-                # Delete entry's identity so it won't be shown as a property.
-                del entry[self.identity]
+        for e in d:
+            if self.identity in e:
+                link = self.g.relationship(e)
             else:
-                # That's a new entry. Create a new node.
-                node = Node(self.label)
+                origin = self.g.node(e['_origin'])
+                target = self.g.node(e['_target'])
 
-            for field, value in entry.items():
-                node[field] = value
+                link = Relationship(origin, self.label.upper(), target)
 
-            nodes.append(node)
+            # Delete meta properties, if present.
+            if self.identity in e:
+                del e[self.identity]
+            if '_origin' in e:
+                del e['_origin']
+            if '_target' in e:
+                del e['_target']
 
-        return nodes
+            link.properties.update(e)
+            links.append(link)
+
+        return links
 
     def all(self, skip=0, limit=None):
         if limit is not None:
@@ -162,23 +188,17 @@ class GraphRepository(Repository):
 
         return self._data_from_nodes(nodes)
 
-    def create(self, entities=[]):
+    def create(self, entities):
         nodes = self._nodes_from_data(entities)
         nodes = self.g.create(*nodes)
 
         return self._data_from_nodes(nodes)
 
-    def _link(self, relationship, origin, target, properties=None):
-        properties = properties or {}
-
-        origin = self.g.node(origin)
-        target = self.g.node(target)
-
-        return Relationship(origin, relationship.upper(), target, **properties)
-
     def link(self, links):
-        relationships = [self._link(*l) for l in links]
-        return self.g.create(relationships)
+        links = self._links_from_data(links)
+        links = self.g.create(*links)
+
+        return self._data_from_links(links)
 
     def find_link(self, origin=None, target=None, limit=None):
         if origin:

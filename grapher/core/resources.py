@@ -218,7 +218,7 @@ class RelationshipResource(SchematicResource):
     origin = target = None
     cardinality = commons.Cardinality.one
 
-    methods = ('GET',)
+    methods = ('GET', 'POST',)
 
     def __init__(self):
         super().__init__()
@@ -247,29 +247,38 @@ class RelationshipResource(SchematicResource):
 
         # Injecting :_origin and :_target properties in schema.
         # They are fundamental as this is a relationship resource.
-        identity = commons.SchemaNavigator.identity_from(self.origin.schema)
+        identity = commons.SchemaNavigator.add_identity(self.origin.schema)
         self.schema['_origin'] = {
             'required': True,
-            'type': identity in self.origin.schema and self.origin.schema[identity]['type'] or 'integer'
+            'type': self.origin.schema[identity]['type']
         }
 
-        identity = commons.SchemaNavigator.identity_from(self.target.schema)
+        identity = commons.SchemaNavigator.add_identity(self.target.schema)
         self.schema['_target'] = {
             'required': True,
-            'type': identity in self.target.schema and self.target.schema[identity]['type'] or 'integer'
+            'type': self.target.schema[identity]['type']
         }
 
     @classmethod
     def real_end_point(cls):
-        return '%s/<int:identity>%s' % (cls.origin.real_end_point(), super().real_end_point())
+        identity = commons.SchemaNavigator.add_identity(cls.origin.schema)
+        t = cls.origin.schema[identity]['type']
+
+        if t == 'integer':
+            t = 'int'
+
+        return '%s/<%s:identity>%s' % (cls.origin.real_end_point(), t, super().real_end_point())
 
     def get(self, identity):
         try:
             links = self.repository.find_link(origin=identity)
             links, fields = self.serializer.project(links)
 
-            if self.cardinality == commons.Cardinality.one and len(links):
-                links = links[0]
+            if self.cardinality == commons.Cardinality.one:
+                if not links:
+                    raise errors.NotFoundError(('NOT_FOUND', '%s/%s' % (identity, self.real_name())))
+
+                links = links.pop()
 
             return self.response(links, wrap=True, projection=fields)
 
@@ -282,6 +291,10 @@ class RelationshipResource(SchematicResource):
 
             if self.cardinality == commons.Cardinality.one and len(links) > 1:
                 raise errors.BadRequestError('CARDINALITY_1_MISMATCH')
+
+            for l in links:
+                # Origins are always constrained to the uri's parameters.
+                l['_origin'] = identity
 
             links, declined = self.serializer.validate(links)
             links = self.repository.link(links)

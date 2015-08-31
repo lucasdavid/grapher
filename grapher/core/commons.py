@@ -78,11 +78,11 @@ class SchemaNavigator(metaclass=abc.ABCMeta):
             # Don't do anything in case there's a identity already.
             schema[identity] = {'type': 'integer', 'identity': True}
 
-        return cls
+        return identity
 
     @classmethod
     def modify_identity_requirement(cls, schema, require=True):
-        identity = cls.add_identity(schema).identity_from(schema)
+        identity = cls.add_identity(schema)
         schema[identity]['required'] = require
 
         return cls
