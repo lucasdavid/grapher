@@ -10,7 +10,7 @@ class Home(resources.Resource):
         return self.response('hello-world', wrap=True)
 
 
-class User(resources.GraphModelResource):
+class User(resources.EntityResource):
     description = 'users, such as students, professors and researches.'
 
     schema = {
@@ -20,13 +20,13 @@ class User(resources.GraphModelResource):
     }
 
 
-class Group(resources.GraphModelResource):
+class Group(resources.EntityResource):
     schema = {
         'name': {'type': 'string', 'required': True, 'empty': False, 'minlength': 2},
     }
 
 
-class Founder(resources.GraphRelationshipResource):
+class Founder(resources.RelationshipResource):
     origin = Group
     target = User
     cardinality = Cardinality.one
@@ -36,7 +36,7 @@ class Founder(resources.GraphRelationshipResource):
     }
 
 
-class Members(resources.GraphRelationshipResource):
+class Members(resources.RelationshipResource):
     origin = Group
     target = User
     cardinality = Cardinality.many

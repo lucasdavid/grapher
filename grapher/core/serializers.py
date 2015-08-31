@@ -1,6 +1,4 @@
 from flask import request
-from flask_restful import abort
-
 from . import commons, validators, errors
 
 
@@ -40,15 +38,13 @@ class Serializer:
         return accepted, declined
 
     def project(self, d):
-        d, transformed = commons.CollectionHelper.transform(d)
-
         # For each entry, remove all (key->value) pair that isn't in the set
         # of projected fields, which are private or non-requested fields.
         for entry in d:
             for field in entry.keys() - self.projected_fields:
                 del entry[field]
 
-        return commons.CollectionHelper.restore(d, transformed), list(self.projected_fields)
+        return d, list(self.projected_fields)
 
 
 class DynamicSerializer(Serializer):

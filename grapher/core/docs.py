@@ -18,4 +18,4 @@ class Docs(resources.Resource):
             'title': settings.effective.DOCS['title'],
             'description': settings.effective.DOCS['description'],
             'resources': {r.real_name(): r.describe() for r in self.resources_to_describe},
-        })
+        }, wrap=False)

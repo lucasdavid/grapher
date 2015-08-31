@@ -3,7 +3,7 @@ from unittest.mock import Mock
 
 from faker import Faker
 from grapher.core import errors
-from grapher.core.repositories import GraphRepository
+from grapher.core.repositories import GraphEntityRepository
 import py2neo
 
 f = Faker()
@@ -21,9 +21,9 @@ def fake_node(**properties):
     return node
 
 
-def fake_relationship(link):
+def fake_relationship(link=None):
     rel = Mock()
-    rel.properties = link.properties
+    rel.properties = link.properties if link else {}
     rel._id = f.random_int(min=0, max=1000)
     rel.start_node = fake_node()
     rel.end_node = fake_node()
@@ -31,7 +31,7 @@ def fake_relationship(link):
     return rel
 
 
-class GraphRepositoryTest(TestCase):
+class GraphEntityRepositoryTest(TestCase):
     def setUp(self):
         self.label = 'test'
         self.schema = {
@@ -48,7 +48,7 @@ class GraphRepositoryTest(TestCase):
         graph.create = Mock(side_effect=lambda *e: (fake_node() for _ in range(len(e))))
         graph.delete = Mock(side_effect=lambda *e: e)
 
-        self.r = GraphRepository(self.label, self.schema)
+        self.r = GraphEntityRepository(self.label, self.schema)
         self.r._g = graph
 
     def test_all(self):
@@ -85,11 +85,11 @@ class GraphRepositoryTest(TestCase):
         self.assertEqual(len(actual), 1)
 
     def test_where_with_multiple_keys(self):
-        with self.assertRaises(errors.GrapherError):
+        with self.assertRaises(ValueError):
             self.r.where(test1=10, test2='test')
 
     def test_create(self):
-        data = fake_node().properties
+        data = [fake_node().properties]
 
         actual = self.r.create(data)
 
@@ -106,23 +106,3 @@ class GraphRepositoryTest(TestCase):
 
         self.assertIsInstance(actual, list)
         self.assertEqual(len(actual), len(entities))
-
-    def test_link(self):
-        self.r._g.node = Mock(side_effect=lambda i: py2neo.Node(self.label))
-
-        self.r._g.create = Mock(side_effect=lambda links: (fake_relationship(l) for l in links))
-        relationships = [
-            {
-                '_origin': 1,
-                '_target': 2,
-                'test1': 10,
-            }
-        ]
-
-        result = self.r.link(relationships)
-
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]['test1'], 10)
-        self.assertIn('_origin', result[0])
-        self.assertIn('_target', result[0])

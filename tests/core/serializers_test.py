@@ -8,22 +8,17 @@ class SerializerTest(TestCase):
     @parameterized.expand([
         (
                 {'a': {'type': 'string'}, 'b': {'type': 'integer'}},
-                {'a': 'a', 'b': 2},
-                {'a', 'b'}
-        ),
-        (
-                {'a': {'type': 'string'}, 'b': {'type': 'integer'}},
                 [{'a': 'a', 'b': 2}],
                 {'a', 'b'}
         ),
         (
                 {'a': {'type': 'string'}, 'b': {'type': 'integer', 'visible': False}},
-                {'a': 'a', 'b': 2},
+                [{'a': 'a', 'b': 2}],
                 {'a'}
         ),
         (
                 {'a': {'type': 'string', 'visible': False}, 'b': {'type': 'integer', 'visible': False}},
-                {'a': 'a'},
+                [{'a': 'a'}],
                 set()
         ),
     ])

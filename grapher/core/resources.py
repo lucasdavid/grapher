@@ -6,6 +6,11 @@ from . import settings, serializers, repositories, paginators, errors, commons
 
 
 class Resource(flask_restful.Resource):
+    """Grapher's base RESTFul resource.
+
+    Sub-classes of this declared in {project}.resources module
+    are automatically loaded as resources.
+    """
     end_point = name = description = None
 
     methods = ('GET', 'HEAD', 'OPTIONS', 'POST', 'PATCH', 'PUT', 'DELETE')
@@ -16,6 +21,14 @@ class Resource(flask_restful.Resource):
     def paginator(self):
         self._paginator = self._paginator or paginators.Paginator()
         return self._paginator
+
+    @classmethod
+    def real_name(cls):
+        """Retrieve the resource's real name based on the overwritten property :name or the class name.
+
+        :return: :str: the name that clearly represents the resource.
+        """
+        return cls.name or '%s' % cls.__name__
 
     @classmethod
     def real_end_point(cls):
@@ -32,14 +45,6 @@ class Resource(flask_restful.Resource):
         return end_point
 
     @classmethod
-    def real_name(cls):
-        """Retrieve the resource's real name based on the overwritten property :name or the class name.
-
-        :return: :str: the name that clearly represents the resource.
-        """
-        return cls.name or '%s' % cls.__name__
-
-    @classmethod
     def describe(cls):
         return {
             'uri': cls.real_end_point(),
@@ -48,7 +53,7 @@ class Resource(flask_restful.Resource):
         }
 
     @staticmethod
-    def response(content=None, status_code=200, wrap=False, remove_empty_keys=False, **meta):
+    def response(content=None, status_code=200, wrap=True, remove_empty_keys=False, **meta):
         result = {}
 
         if meta:
@@ -103,6 +108,8 @@ class SchematicResource(Resource):
     serializer_class = serializers.DynamicSerializer
 
     def __init__(self):
+        super().__init__()
+
         if not self.schema:
             self.schema = {}
 
@@ -130,17 +137,24 @@ class SchematicResource(Resource):
         return d
 
 
-class ModelResource(SchematicResource):
+class EntityResource(SchematicResource):
+    repository_class = repositories.GraphEntityRepository
+
+    def __init__(self):
+        super().__init__()
+
+        assert issubclass(self.repository_class, repositories.EntityRepository)
+
     def get(self):
         try:
             d = self.repository.all()
             d, fields = self.serializer.project(d)
             d, page = self.paginator.paginate(d)
 
-            return self.response(d, projection=fields, page=page, wrap=True)
+            return self.response(d, projection=fields, page=page)
 
         except errors.GrapherError as e:
-            return self.response(status_code=e.status_code, errors=e.as_api_response())
+            return self.response(status_code=e.status_code, errors=e.as_api_response(), wrap=False)
 
     def post(self):
         try:
@@ -150,11 +164,10 @@ class ModelResource(SchematicResource):
             entries, fields = self.serializer.project(entries)
 
             return self.response({'created': entries, 'failed': declined},
-                                 remove_empty_keys=True,
-                                 projection=fields)
+                                 wrap=False, remove_empty_keys=True, projection=fields)
 
         except errors.GrapherError as e:
-            return self.response(status_code=e.status_code, errors=e.as_api_response())
+            return self.response(status_code=e.status_code, errors=e.as_api_response(), wrap=False)
 
     def put(self):
         try:
@@ -166,7 +179,7 @@ class ModelResource(SchematicResource):
             return self._real_update(entries)
 
         except errors.GrapherError as e:
-            return self.response(status_code=e.status_code, errors=e.as_api_response())
+            return self.response(status_code=e.status_code, errors=e.as_api_response(), wrap=False)
 
     def patch(self):
         try:
@@ -201,14 +214,15 @@ class ModelResource(SchematicResource):
         entries, fields = self.serializer.project(entries)
 
         return self.response({'updated': entries, 'failed': declined},
-                             remove_empty_keys=True,
+                             wrap=False, remove_empty_keys=True,
                              projection=fields)
 
     def delete(self):
         try:
-            entries, fields = self.serializer.project(request.json)
+            entries, _ = commons.CollectionHelper.transform(request.json)
+            entries, fields = self.serializer.project(entries)
 
-            return self.response({'deleted': entries}, projection=fields)
+            return self.response({'deleted': entries}, projection=fields, wrap=False)
 
         except errors.GrapherError as e:
             return self.response(status_code=e.status_code, errors=e.as_api_response())
@@ -219,6 +233,8 @@ class RelationshipResource(SchematicResource):
     cardinality = commons.Cardinality.one
 
     methods = ('GET', 'POST',)
+
+    repository_class = repositories.GraphRelationshipRepository
 
     def __init__(self):
         super().__init__()
@@ -235,12 +251,12 @@ class RelationshipResource(SchematicResource):
             self.origin = getattr(self.target, defined_resources)
 
         # Make sure classes are ModelResource subclass, as they are databases' entities.
-        if not issubclass(self.origin, ModelResource):
+        if not issubclass(self.origin, EntityResource):
             raise ValueError(
-                'Origin references {%s}. Try a ModelResource subclass instead.' % ModelResource.__name__)
-        if not issubclass(self.target, ModelResource):
+                'Origin references {%s}. Try a ModelResource subclass instead.' % EntityResource.__name__)
+        if not issubclass(self.target, EntityResource):
             raise ValueError(
-                'Target references {%s}. Try a ModelResource subclass instead.' % ModelResource.__name__)
+                'Target references {%s}. Try a ModelResource subclass instead.' % EntityResource.__name__)
 
         if self.cardinality != '1' and self.cardinality != '*':
             raise ValueError('Cardinality must be "1" or "*" and %s was given.' % str(self.cardinality))
@@ -259,6 +275,8 @@ class RelationshipResource(SchematicResource):
             'type': self.target.schema[identity]['type']
         }
 
+        assert issubclass(self.repository_class, repositories.RelationshipRepository)
+
     @classmethod
     def real_end_point(cls):
         identity = commons.SchemaNavigator.add_identity(cls.origin.schema)
@@ -269,9 +287,22 @@ class RelationshipResource(SchematicResource):
 
         return '%s/<%s:identity>%s' % (cls.origin.real_end_point(), t, super().real_end_point())
 
+    @classmethod
+    def describe(cls):
+        d = super().describe()
+        d.update(
+            relationship={
+                'origin': cls.origin.real_name(),
+                'target': cls.target.real_name(),
+                'cardinality': cls.cardinality
+            }
+        )
+
+        return d
+
     def get(self, identity):
         try:
-            links = self.repository.find_link(origin=identity)
+            links = self.repository.find(origin=identity)
             links, fields = self.serializer.project(links)
 
             if self.cardinality == commons.Cardinality.one:
@@ -304,24 +335,3 @@ class RelationshipResource(SchematicResource):
 
         except errors.GrapherError as e:
             return self.response(status_code=e.status_code, errors=e.as_api_response())
-
-    @classmethod
-    def describe(cls):
-        d = super().describe()
-        d.update(
-            relationship={
-                'origin': cls.origin.real_name(),
-                'target': cls.target.real_name(),
-                'cardinality': cls.cardinality
-            }
-        )
-
-        return d
-
-
-class GraphModelResource(ModelResource):
-    repository_class = repositories.GraphRepository
-
-
-class GraphRelationshipResource(RelationshipResource):
-    repository_class = repositories.GraphRepository

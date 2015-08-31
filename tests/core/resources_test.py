@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock
 from nose_parameterized import parameterized
-from grapher.core.resources import Resource, SchematicResource, ModelResource
+from grapher.core.resources import Resource, SchematicResource, EntityResource
 
 
 class ResourceTest(TestCase):
@@ -51,9 +51,9 @@ class ResourceTest(TestCase):
         else:
             self.assertEqual(actual_response, expected)
 
-    def test_response_raises(self):
+    def test_response_raises_error_when_not_wrapping_lists(self):
         with self.assertRaises(RuntimeError):
-            Resource.response([1, 2, 3], count=3)
+            Resource.response([1, 2, 3], count=3, wrap=False)
 
 
 class SchematicResourceTest(TestCase):
@@ -74,7 +74,7 @@ class SchematicResourceTest(TestCase):
 
 class ModelResourceTest(TestCase):
     def test_get(self):
-        r = ModelResource()
+        r = EntityResource()
         r._repository = Mock()
         r._repository.all = Mock(return_value=[{'test': 1} for _ in range(4)])
         r._serializer = Mock()
