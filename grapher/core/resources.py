@@ -158,7 +158,8 @@ class EntityResource(SchematicResource):
 
     def post(self):
         try:
-            entries, declined = self.serializer.validate(request.json)
+            entries, _ = commons.CollectionHelper.transform(request.json)
+            entries, declined = self.serializer.validate(entries)
 
             entries = self.repository.create(entries)
             entries, fields = self.serializer.project(entries)

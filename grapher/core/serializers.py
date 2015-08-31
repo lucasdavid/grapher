@@ -25,7 +25,6 @@ class Serializer:
 
         accepted, declined = [], {}
         v = validators.GrapherValidator(self.schema)
-        d, _ = commons.CollectionHelper.transform(d)
 
         for i, e in enumerate(d):
             if v.validate(e):
