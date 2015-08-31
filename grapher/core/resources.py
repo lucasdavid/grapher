@@ -329,7 +329,7 @@ class RelationshipResource(SchematicResource):
                 l['_origin'] = identity
 
             relationships, declined = self.serializer.validate(relationships)
-            relationships = self.repository.link(relationships)
+            relationships = self.repository.create(relationships)
             relationships, fields = self.serializer.project(relationships)
 
             return self.response({'created': relationships, 'failed': declined}, projection=fields)
