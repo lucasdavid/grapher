@@ -302,36 +302,36 @@ class RelationshipResource(SchematicResource):
 
     def get(self, identity):
         try:
-            links = self.repository.find(origin=identity)
-            links, fields = self.serializer.project(links)
+            relationships = self.repository.find(origin=identity)
+            relationships, fields = self.serializer.project(relationships)
 
             if self.cardinality == commons.Cardinality.one:
-                if not links:
+                if not relationships:
                     raise errors.NotFoundError(('NOT_FOUND', '%s/%s' % (identity, self.real_name())))
 
-                links = links.pop()
+                relationships = relationships.pop()
 
-            return self.response(links, wrap=True, projection=fields)
+            return self.response(relationships, wrap=True, projection=fields)
 
         except errors.GrapherError as e:
             return self.response(status_code=e.status_code, errors=e.as_api_response())
 
     def post(self, identity):
         try:
-            links, _ = commons.CollectionHelper.transform(request.json)
+            relationships, _ = commons.CollectionHelper.transform(request.json)
 
-            if self.cardinality == commons.Cardinality.one and len(links) > 1:
+            if self.cardinality == commons.Cardinality.one and len(relationships) > 1:
                 raise errors.BadRequestError('CARDINALITY_1_MISMATCH')
 
-            for l in links:
+            for l in relationships:
                 # Origins are always constrained to the uri's parameters.
                 l['_origin'] = identity
 
-            links, declined = self.serializer.validate(links)
-            links = self.repository.link(links)
-            links, fields = self.serializer.project(links)
+            relationships, declined = self.serializer.validate(relationships)
+            relationships = self.repository.link(relationships)
+            relationships, fields = self.serializer.project(relationships)
 
-            return self.response({'created': links, 'failed': declined}, projection=fields)
+            return self.response({'created': relationships, 'failed': declined}, projection=fields)
 
         except errors.GrapherError as e:
             return self.response(status_code=e.status_code, errors=e.as_api_response())

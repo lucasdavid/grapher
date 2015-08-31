@@ -1,5 +1,5 @@
-from .core import resources
-from .core.commons import Cardinality
+from grapher.core import resources
+from grapher.core.commons import Cardinality
 
 
 class Home(resources.Resource):
