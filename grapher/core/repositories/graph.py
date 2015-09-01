@@ -41,6 +41,24 @@ class GraphRepository(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    def _build(self, identities):
+        """Build entities based on their identities.
+
+        :param identities: :list of identities compatible with self.schema[self.identity]['type'].
+        :return: a list of :nodes or :relationships corresponding to the identities passed, in order.
+        """
+        raise NotImplementedError
+
+    def find(self, identities):
+        entities = self._build(identities)
+
+        try:
+            self.g.pull(*entities)
+        except py2neo.GraphError:
+            raise errors.NotFoundError(('NOT_FOUND', identities))
+
+        return self._data_from_entities(entities)
+
     def create(self, entities):
         entities = self._data_to_entities(entities)
         entities = self.g.create(*entities)
@@ -54,8 +72,8 @@ class GraphRepository(metaclass=abc.ABCMeta):
 
         return self._data_from_entities(entities)
 
-    def delete(self, entities):
-        entities = self._data_to_entities(entities)
+    def delete(self, identities):
+        entities = self._build(identities)
         entities = self.g.delete(*entities)
 
         return self._data_from_entities(entities)
@@ -91,6 +109,9 @@ class GraphEntityRepository(GraphRepository, base.EntityRepository):
 
         return nodes
 
+    def _build(self, identities):
+        return [self.g.node(i) for i in identities]
+
     def all(self, skip=None, limit=None):
         if not skip:
             skip = 0
@@ -106,18 +127,6 @@ class GraphEntityRepository(GraphRepository, base.EntityRepository):
         # Discard :skip elements.
         for _ in range(skip):
             next(nodes)
-
-        return self._data_from_entities(nodes)
-
-    def find(self, identities):
-        nodes = [self.g.node(i) for i in identities]
-
-        try:
-            self.g.pull(*nodes)
-        except py2neo.GraphError:
-            raise errors.NotFoundError(
-                ('NOT_FOUND', identities)
-            )
 
         return self._data_from_entities(nodes)
 
@@ -169,7 +178,10 @@ class GraphRelationshipRepository(GraphRepository, base.RelationshipRepository):
 
         return relationships
 
-    def find(self, origin=None, target=None, limit=None):
+    def _build(self, identities):
+        return [self.g.relationship(i) for i in identities]
+
+    def match(self, origin=None, target=None, limit=None):
         if origin:
             origin = self.g.node(origin)
 
