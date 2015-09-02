@@ -3,7 +3,7 @@ import importlib
 
 from flask import Flask
 from flask_restful import Api
-from . import resources, docs
+from . import resources, docs, settings
 
 
 class Grapher:
@@ -14,8 +14,7 @@ class Grapher:
 
         :param name: the name of the application that will be created.
         """
-        settings_module = importlib.import_module('grapher.settings')
-        self.settings = settings_module.effective
+        self.settings = settings.effective
 
         self.app = Flask(name)
         self.app.config.from_object(self.settings)
