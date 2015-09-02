@@ -14,8 +14,14 @@ class Docs(resources.Resource):
     resources_to_describe = ()
 
     def get(self):
-        return self.response({
+        d = {
             'title': settings.effective.DOCS['title'],
             'description': settings.effective.DOCS['description'],
-            'resources': {r.real_name(): r.describe() for r in self.resources_to_describe},
-        }, wrap=False)
+            'resources': {},
+        }
+
+        for resource_class in self.resources_to_describe:
+            r = resource_class()
+            d['resources'][r.real_name()] = r.describe()
+
+        return self.response(d, wrap=False)
