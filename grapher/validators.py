@@ -13,7 +13,3 @@ class GrapherValidator(Validator):
     def _validate_index(self, index, field, value):
         """Add "index" property to schemas.
         """
-
-    def _validate_relationship(self, relationship, field, value):
-        """Add "relationship" property to schemas.
-        """

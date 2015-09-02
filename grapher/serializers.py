@@ -3,8 +3,12 @@ from . import commons, validators, errors
 
 
 class Serializer:
-    def __init__(self, schema):
+    """Serializer for incoming and outgoing data by the resources.
+    """
+    def __init__(self, label, schema, resource):
+        self.label = label
         self.schema = schema
+        self.resource = resource
 
     _projected_fields = None
 
@@ -15,6 +19,13 @@ class Serializer:
                                  {f for f, d in self.schema.items() if 'visible' not in d or d['visible']}
         return self._projected_fields
 
+    _validator = None
+
+    @property
+    def validator(self):
+        self._validator = self._validator or validators.GrapherValidator(self.schema)
+        return self._validator
+
     def validate(self, d, require_identity=False):
         if not d:
             raise errors.BadRequestError(
@@ -23,18 +34,18 @@ class Serializer:
 
         commons.SchemaNavigator.modify_identity_requirement(self.schema, require=require_identity)
 
-        accepted, declined = [], {}
+        accepted, rejected = [], {}
         v = validators.GrapherValidator(self.schema)
 
         for i, e in enumerate(d):
             if v.validate(e):
                 accepted.append(e)
             else:
-                declined[i] = v.errors
+                rejected[i] = v.errors
 
         commons.SchemaNavigator.modify_identity_requirement(self.schema, require=False)
 
-        return accepted, declined
+        return accepted, rejected
 
     def project(self, d):
         # For each entry, remove all (key->value) pair that isn't in the set
@@ -46,7 +57,12 @@ class Serializer:
         return d, list(self.projected_fields)
 
 
-class DynamicSerializer(Serializer):
+class RelationshipSerializer(Serializer):
+    def validate(self, d, require_identity=False):
+        return super().validate(d, require_identity)
+
+
+class DynamicFieldsMixin:
     @property
     def projected_fields(self):
         """Overrides BaseSerializer :project_fields property to consider fields requested by the user.
@@ -74,3 +90,11 @@ class DynamicSerializer(Serializer):
                 self._projected_fields = fields & request_fields
 
         return self._projected_fields
+
+
+class DynamicSerializer(DynamicFieldsMixin, Serializer):
+    pass
+
+
+class DynamicRelationshipSerializer(DynamicFieldsMixin, Serializer):
+    pass

@@ -43,7 +43,6 @@ class Resource(flask_restful.Resource):
         end_point = (cls.end_point or cls.real_name()).lower()
 
         end_point = '/' + end_point if end_point[0] != '/' else end_point
-        end_point = end_point + '/' if end_point[-1] != '/' else end_point
 
         return end_point
 
@@ -51,7 +50,7 @@ class Resource(flask_restful.Resource):
     def describe(cls):
         return {
             'uri': cls.real_end_point(),
-            'description': cls.description or 'resource %s' % cls.real_name(),
+            'description': cls.description or 'Resource %s' % cls.real_name(),
             'methods': cls.methods,
         }
 
@@ -114,21 +113,21 @@ class SchematicResource(Resource):
 
     @property
     def repository(self):
-        self._repository = self._repository or self.repository_class(self.real_name(), self.schema)
+        self._repository = self._repository or self.repository_class(self.real_name(), self.schema, self)
         return self._repository
 
     _serializer = None
 
     @property
     def serializer(self):
-        self._serializer = self._serializer or self.serializer_class(self.schema)
+        self._serializer = self._serializer or self.serializer_class(self.real_name(), self.schema, self)
         return self._serializer
 
     def describe(self):
-        d = super().describe()
-        d.update(schema=self.schema)
+        description = super().describe()
+        description.update(schema=self.schema)
 
-        return d
+        return description
 
     def _identify(self, entries):
         identity = commons.SchemaNavigator.identity_from(self.schema)
@@ -141,7 +140,11 @@ class SchematicResource(Resource):
 
     def _update(self, entries):
         entries, declined = self.serializer.validate(entries, require_identity=True)
+
+        self._trigger('before_update', entries=entries)
         entries = self.repository.update(entries)
+        self._trigger('after_update', entries=entries)
+
         entries, fields = self.serializer.project(entries)
 
         return self.response({'updated': entries, 'failed': declined}, wrap=False, projection=fields)
@@ -151,6 +154,8 @@ class RESTFulSchematicResource(SchematicResource):
     def get(self):
         try:
             d = self.repository.all()
+            self._trigger('after_retrieve', entries=d)
+
             d, fields = self.serializer.project(d)
             d, page = self.paginator.paginate(d)
 
@@ -163,7 +168,11 @@ class RESTFulSchematicResource(SchematicResource):
         try:
             entries, _ = commons.CollectionHelper.transform(self.json())
             entries, declined = self.serializer.validate(entries)
+
+            self._trigger('before_create', entries=entries)
             entries = self.repository.create(entries)
+            self._trigger('after_create', entries=entries)
+
             entries, fields = self.serializer.project(entries)
 
             return self.response({'created': entries, 'failed': declined}, wrap=False, projection=fields)
@@ -204,7 +213,10 @@ class RESTFulSchematicResource(SchematicResource):
         try:
             identities, _ = commons.CollectionHelper.transform(self.json())
 
+            self._trigger('before_delete', identities=identities)
             entries = self.repository.delete(identities)
+            self._trigger('after_delete', identities=identities)
+
             entries, fields = self.serializer.project(entries)
 
             return self.response({'deleted': entries}, projection=fields, wrap=False)
@@ -224,12 +236,15 @@ class EntityResource(RESTFulSchematicResource):
 
 class RelationshipResource(RESTFulSchematicResource):
     origin = target = None
-    cardinality = commons.Cardinality.one
+    cardinality = commons.Cardinality.many
 
     repository_class = repositories.GraphRelationshipRepository
+    serializer_class = serializers.DynamicRelationshipSerializer
 
     def __init__(self):
         super().__init__()
+
+        assert issubclass(self.repository_class, repositories.base.RelationshipRepository)
 
         if not self.origin or not self.target:
             raise ValueError('Relationship resources must have a valid origin and target attribute set.')
@@ -267,11 +282,10 @@ class RelationshipResource(RESTFulSchematicResource):
             'type': self.target.schema[identity]['type']
         }
 
-        assert issubclass(self.repository_class, repositories.base.RelationshipRepository)
-
     def describe(self):
-        d = super().describe()
-        d.update(
+        description = super().describe()
+        description.update(
+            description=self.description or 'Relationship %s' % self.real_name(),
             relationship={
                 'origin': self.origin.real_name(),
                 'target': self.target.real_name(),
@@ -279,4 +293,4 @@ class RelationshipResource(RESTFulSchematicResource):
             }
         )
 
-        return d
+        return description

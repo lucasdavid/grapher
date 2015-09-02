@@ -7,7 +7,7 @@ class Repository(metaclass=abc.ABCMeta):
 
     Extended by :EntityRepository and :RelationshipRepository.
     """
-    def __init__(self, label, schema):
+    def __init__(self, label, schema, resource):
         """Construct a repository of a :label, constrained by a :schema.
 
         :param label: :str: which represents the entity in the persistence back-end.
@@ -16,6 +16,7 @@ class Repository(metaclass=abc.ABCMeta):
         self.label = label
         self.schema = schema
         self.identity = commons.SchemaNavigator.identity_from(schema)
+        self.resource = resource
 
     def all(self, skip=None, limit=None):
         """Retrieve all elements that share :self.label.
