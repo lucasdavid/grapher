@@ -139,13 +139,6 @@ class SchematicResource(Resource):
         except KeyError:
             raise errors.BadRequestError('UNIDENTIFIABLE')
 
-    def _create(self, entries):
-        entries, declined = self.serializer.validate(entries)
-        entries = self.repository.create(entries)
-        entries, fields = self.serializer.project(entries)
-
-        return self.response({'created': entries, 'failed': declined}, wrap=False, projection=fields)
-
     def _update(self, entries):
         entries, declined = self.serializer.validate(entries, require_identity=True)
         entries = self.repository.update(entries)
@@ -154,14 +147,7 @@ class SchematicResource(Resource):
         return self.response({'updated': entries, 'failed': declined}, wrap=False, projection=fields)
 
 
-class EntityResource(SchematicResource):
-    repository_class = repositories.GraphEntityRepository
-
-    def __init__(self):
-        super().__init__()
-
-        assert issubclass(self.repository_class, repositories.base.EntityRepository)
-
+class RESTFulSchematicResource(SchematicResource):
     def get(self):
         try:
             d = self.repository.all()
@@ -176,7 +162,11 @@ class EntityResource(SchematicResource):
     def post(self):
         try:
             entries, _ = commons.CollectionHelper.transform(self.json())
-            return self._create(entries)
+            entries, declined = self.serializer.validate(entries)
+            entries = self.repository.create(entries)
+            entries, fields = self.serializer.project(entries)
+
+            return self.response({'created': entries, 'failed': declined}, wrap=False, projection=fields)
 
         except errors.GrapherError as e:
             return self.response(status=e.status_code, errors=e.as_api_response(), wrap=False)
@@ -223,7 +213,16 @@ class EntityResource(SchematicResource):
             return self.response(status=e.status_code, errors=e.as_api_response())
 
 
-class RelationshipResource(SchematicResource):
+class EntityResource(RESTFulSchematicResource):
+    repository_class = repositories.GraphEntityRepository
+
+    def __init__(self):
+        super().__init__()
+
+        assert issubclass(self.repository_class, repositories.base.EntityRepository)
+
+
+class RelationshipResource(RESTFulSchematicResource):
     origin = target = None
     cardinality = commons.Cardinality.one
 
@@ -270,16 +269,6 @@ class RelationshipResource(SchematicResource):
 
         assert issubclass(self.repository_class, repositories.base.RelationshipRepository)
 
-    @classmethod
-    def real_end_point(cls):
-        identity = commons.SchemaNavigator.add_identity(cls.origin.schema)
-        t = cls.origin.schema[identity]['type']
-
-        if t == 'integer':
-            t = 'int'
-
-        return '%s<%s:identity>%s' % (cls.origin.real_end_point(), t, super().real_end_point())
-
     def describe(self):
         d = super().describe()
         d.update(
@@ -291,81 +280,3 @@ class RelationshipResource(SchematicResource):
         )
 
         return d
-
-    def get(self, identity):
-        try:
-            relationships = self.repository.match(origin=identity)
-            relationships, fields = self.serializer.project(relationships)
-
-            if self.cardinality == commons.Cardinality.one:
-                if not relationships:
-                    raise errors.NotFoundError(('NOT_FOUND', '%s/%s' % (identity, self.real_name())))
-
-                relationships = relationships.pop()
-
-            return self.response(relationships, projection=fields)
-
-        except errors.GrapherError as e:
-            return self.response(status=e.status_code, errors=e.as_api_response())
-
-    def post(self, identity):
-        try:
-            relationships, _ = commons.CollectionHelper.transform(self.json())
-
-            if self.cardinality == commons.Cardinality.one and len(relationships) > 1:
-                raise errors.BadRequestError('CARDINALITY_1_MISMATCH')
-
-            for l in relationships:
-                # Origins are always constrained to the uri's parameters.
-                l['_origin'] = identity
-
-            return self._create(relationships)
-
-        except errors.GrapherError as e:
-            return self.response(status=e.status_code, errors=e.as_api_response())
-
-    def put(self, identity):
-        try:
-            entries, _ = commons.CollectionHelper.transform(self.json())
-            for d in entries:
-                d['_origin'] = identity
-
-            # Makes sure every entry has an identity.
-            self._identify(entries)
-
-            return self._update(entries)
-
-        except errors.GrapherError as e:
-            return self.response(status=e.status_code, errors=e.as_api_response(), wrap=False)
-
-    def patch(self, identity):
-        try:
-            r, _ = commons.CollectionHelper.transform(self.json())
-            for d in r:
-                d['_origin'] = identity
-
-            # We need all the entities' data to run meaningful validations.
-            identities = self._identify(r)
-            entries = self.repository.find(identities)
-
-            # Patches the request data onto the database data.
-            for i in range(len(r)):
-                entries[i].update(r[i])
-            del r
-
-            return self._update(entries)
-
-        except errors.GrapherError as e:
-            return self.response(status=e.status_code, errors=e.as_api_response())
-
-    def delete(self, identity):
-        try:
-            identities, _ = commons.CollectionHelper.transform(self.json())
-
-            entries = self.repository.delete(identities)
-            entries, fields = self.serializer.project(entries)
-
-            return self.response({'deleted': entries}, projection=fields, wrap=False)
-
-        except errors.GrapherError as e:
-            return self.response(status=e.status_code, errors=e.as_api_response())
