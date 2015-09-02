@@ -71,7 +71,7 @@ class Task(resources.GraphModelResource):
 ## Using other databases
 
 It's perfectly plausible if you don't think Neo4J is the ideal database for your problem. In that case, just create a 
-`repositories.py` file in `grapher` and implement the interface `grapher.core.repositories.Repository`. For example,
+`repositories.py` file in `grapher` and implement the interface `grapher.repositories.Repository`. For example,
 let's say you want to use [MongoDB](https://www.mongodb.org/):
 
 ```py
