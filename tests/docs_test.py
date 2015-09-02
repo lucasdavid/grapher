@@ -16,12 +16,12 @@ class DocsTest(TestCase):
             resource.schema = {}
             resource.methods = ('GET', 'POST')
 
-    def test_(self):
+    def test_get(self):
         Docs.resources_to_describe = self.expected
 
         response, status_code = Docs().get()
-        
-        self.assertEqual(status_code, 200)        
+
+        self.assertEqual(status_code, 200)
 
         self.assertIn('title', response)
         self.assertIn('description', response)
