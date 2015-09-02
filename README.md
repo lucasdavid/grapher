@@ -11,7 +11,32 @@ Grapher aims at high speed development of high quality web
 back-end - just like [eve-python](http://python-eve.org/) -, but without sacrificing the possibility of customization -
 similar to [rest-framework](http://www.django-rest-framework.org/).
 
-If your goal is to develop a distributed/web application, take a look at Grapher's docs to see how we can help you! 
+If your goal is to develop a distributed/web application, take a look at Grapher's docs to see how we can help you!
+ 
+
+A small example:
+
+```py
+class Book(resources.EntityResource):
+    schema = {
+        'title': {'type': 'string', 'required': True},
+        'isbn': {'type': 'string'}
+    }
+
+class Author(resources.EntityResource):
+    schema = {
+        'name': {'type': 'string', 'required': True}
+    }
+
+class Authorship(resources.EntityResource):
+    origin = Author
+    target = Book
+    cardinality = Cardinality.many
+    schema = {
+        'year': {'type': 'integer'}
+    }
+
+```
 
 
 ## Documentation
