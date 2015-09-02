@@ -6,9 +6,11 @@ try:
         requirements += f.readlines()
 except IOError:
     pass
+
+dev_requirements = requirements[:]
 try:
     with open('requirements-dev.txt') as f:
-        requirements += f.readlines()
+        dev_requirements += f.readlines()
 except IOError:
     pass
 
@@ -17,10 +19,14 @@ setup(
     version='0.1',
     license='MIT',
     long_description=open('README.md').read(),
-    packages=find_packages(include=('grapher.*',)),
+    packages=find_packages(include=('grapher', 'grapher.*')),
     include_package_data=True,
+
     install_requires=requirements,
+
+    test_requires=dev_requirements,
     test_suite='tests.unit',
+
     classifiers=[
         'Programming Language :: Python',
         'License :: MIT',

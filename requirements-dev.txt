@@ -4,5 +4,4 @@ nose-parameterized
 fake-factory
 coverage
 radon
-mock
 coveralls
