@@ -1,6 +1,6 @@
 from unittest import TestCase
 from unittest.mock import Mock
-from grapher.core.docs import Docs
+from grapher.docs import Docs
 
 
 class DocsTest(TestCase):
@@ -30,6 +30,5 @@ class DocsTest(TestCase):
         self.assertEqual(len(response['resources']), len(self.expected))
 
         for i, resource in enumerate(self.expected):
-            self.assertIn('test%i' % i, response['resources'])
             resource.real_name.assert_called_once()
             resource.real_end_point.assert_called_once()

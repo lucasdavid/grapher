@@ -1,7 +1,7 @@
 from unittest import TestCase
 from nose_parameterized import parameterized
 
-from grapher.core import validators
+from grapher import validators
 
 
 class GraphValidatorTest(TestCase):

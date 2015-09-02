@@ -14,7 +14,7 @@ class Grapher:
 
         :param name: the name of the application that will be created.
         """
-        settings_module = importlib.import_module('grapher.core.settings')
+        settings_module = importlib.import_module('grapher.settings')
         self.settings = settings_module.effective
 
         self.app = Flask(name)
@@ -36,6 +36,9 @@ class Grapher:
 
         All resources must have been declared in .grapher.resources, as it's the only module scanned.
         """
+        if self.settings.BASE_MODULE is None:
+            raise ValueError('effective.BASE_MODULE is not set.')
+
         declared_resources = '.'.join([self.settings.BASE_MODULE, 'resources'])
         declared_resources = importlib.import_module(declared_resources)
 

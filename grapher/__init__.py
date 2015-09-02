@@ -1,2 +1,1 @@
-from . import settings
-from .core import Grapher
+from .grapher import Grapher

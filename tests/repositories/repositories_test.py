@@ -2,8 +2,8 @@ from unittest import TestCase
 from unittest.mock import Mock
 
 from faker import Faker
-from grapher.core import errors
-from grapher.core.repositories import GraphEntityRepository
+from grapher import errors
+from grapher.repositories import GraphEntityRepository
 import py2neo
 
 f = Faker()

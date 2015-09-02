@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock
 
-from grapher.core import paginators
+from grapher import paginators
 
 
 class PaginatorTest(TestCase):

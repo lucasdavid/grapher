@@ -1,7 +1,7 @@
 from unittest import TestCase
 from nose_parameterized import parameterized
 
-from grapher.core import serializers, errors
+from grapher import serializers, errors
 
 
 class SerializerTest(TestCase):

@@ -1,6 +1,6 @@
 from unittest import TestCase
-from grapher.core import errors
-from grapher.core.settings import Testing
+from grapher import errors
+from grapher.settings import Testing
 
 
 class GrapherErrorTest(TestCase):

@@ -1,8 +1,7 @@
 from unittest import TestCase
 
 from cerberus import SchemaError
-from grapher.core import commons
-from py2neo import Node
+from grapher import commons
 
 
 class SchemaNavigatorTest(TestCase):
