@@ -38,9 +38,8 @@ class Resource(flask_restful.Resource):
         """
         end_point = (cls.end_point or cls.real_name()).lower()
 
-        if end_point[0] != '/':
-            # Add base slash, if it doesn't have it yet.
-            end_point = '/%s' % end_point
+        end_point = '/' + end_point if end_point[0] != '/' else end_point
+        end_point = end_point + '/' if end_point[-1] != '/' else end_point
 
         return end_point
 
@@ -121,10 +120,9 @@ class SchematicResource(Resource):
         self._serializer = self._serializer or self.serializer_class(self.schema)
         return self._serializer
 
-    @classmethod
-    def describe(cls):
+    def describe(self):
         d = super().describe()
-        d.update(schema=cls.schema)
+        d.update(schema=self.schema)
 
         return d
 
@@ -276,16 +274,15 @@ class RelationshipResource(SchematicResource):
         if t == 'integer':
             t = 'int'
 
-        return '%s/<%s:identity>%s' % (cls.origin.real_end_point(), t, super().real_end_point())
+        return '%s<%s:identity>%s' % (cls.origin.real_end_point(), t, super().real_end_point())
 
-    @classmethod
-    def describe(cls):
+    def describe(self):
         d = super().describe()
         d.update(
             relationship={
-                'origin': cls.origin.real_name(),
-                'target': cls.target.real_name(),
-                'cardinality': cls.cardinality
+                'origin': self.origin.real_name(),
+                'target': self.target.real_name(),
+                'cardinality': self.cardinality
             }
         )
 
