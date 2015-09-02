@@ -1,5 +1,5 @@
 from flask.ext.script import Manager, Server
-from grapher.core.grapher import Grapher
+from grapher import Grapher
 
 if __name__ == "__main__":
     grapher = Grapher(__name__)
