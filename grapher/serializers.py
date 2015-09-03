@@ -4,8 +4,11 @@ from . import commons, validators, errors
 
 class Serializer:
     """Serializer for incoming and outgoing data by the resources.
+
+    All data must be validated by a serializer before being sent to repositories.
+
     """
-    def __init__(self, label, schema, resource):
+    def __init__(self, label, schema, resource=None):
         self.label = label
         self.schema = schema
         self.resource = resource

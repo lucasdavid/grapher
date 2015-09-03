@@ -87,9 +87,10 @@ class Resource(flask_restful.Resource):
         :param kwargs: key arguments passed to the event.
         :return: the event's result, in case it has been defined.
         """
-        method = getattr(self, event)
-        if method:
-            return method(*args, **kwargs)
+        if hasattr(self, event):
+            method = getattr(self, event)
+            if method:
+                return method(*args, **kwargs)
 
     def options(self):
         return self.describe()

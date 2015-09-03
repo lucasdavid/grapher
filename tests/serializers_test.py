@@ -23,7 +23,7 @@ class SerializerTest(TestCase):
         ),
     ])
     def test_project(self, schema, data, expected_fields):
-        s = serializers.Serializer(schema)
+        s = serializers.Serializer('test', schema)
         result, fields = s.project(data)
 
         self.assertIsInstance(fields, list)
@@ -66,12 +66,12 @@ class SerializerTest(TestCase):
         ),
     ])
     def test_projected_fields(self, schema, expected):
-        s = serializers.Serializer(schema)
+        s = serializers.Serializer('test', schema)
 
         self.assertEqual(s.projected_fields, expected)
 
     def test_validate_null_data(self):
-        s = serializers.Serializer({})
+        s = serializers.Serializer('test', {})
 
         with self.assertRaises(errors.BadRequestError):
             s.validate(None)
@@ -80,7 +80,7 @@ class SerializerTest(TestCase):
         ({}, [{'a': 1}], ([], {0: {'a': 'unknown field'}}))
     ])
     def test_validate(self, schema, data, expected):
-        s = serializers.Serializer(schema)
+        s = serializers.Serializer('test', schema)
         accepted, declined = s.validate(data)
 
         self.assertListEqual(accepted, expected[0])

@@ -6,10 +6,10 @@ from grapher.resources import Resource, SchematicResource, EntityResource
 
 class ResourceTest(TestCase):
     @parameterized.expand([
-        ('test', '/test/'),
-        ('/test', '/test/'),
-        ('Custom-Test', '/custom-test/'),
-        (None, '/resource/')
+        ('test', '/test'),
+        ('/test', '/test'),
+        ('Custom-Test', '/custom-test'),
+        (None, '/resource')
     ])
     def test_real_end_point(self, end_point, expected):
         Resource.end_point = end_point
