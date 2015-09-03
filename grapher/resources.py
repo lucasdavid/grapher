@@ -12,6 +12,7 @@ class Resource(flask_restful.Resource):
     are automatically loaded as resources.
     """
     end_point = name = description = None
+    pluralize = settings.effective.PLURALIZE_ENTITIES_NAMES
 
     methods = ('GET', 'HEAD', 'OPTIONS', 'POST', 'PATCH', 'PUT', 'DELETE')
 
@@ -32,7 +33,7 @@ class Resource(flask_restful.Resource):
 
         :return: :str: the name that clearly represents the resource.
         """
-        return cls.name or '%s' % cls.__name__
+        return cls.name or cls.__name__
 
     @classmethod
     def real_end_point(cls):
@@ -40,11 +41,10 @@ class Resource(flask_restful.Resource):
 
         :return: :str: the string representing the name of the resource.
         """
-        end_point = (cls.end_point or cls.real_name()).lower()
+        end_point = (cls.end_point if cls.end_point is not None else cls.real_name()).lower()
+        end_point = '/'.join((settings.effective.BASE_END_POINT, end_point)).replace('//', '/')
 
-        end_point = '/' + end_point if end_point[0] != '/' else end_point
-
-        return end_point
+        return '/' + end_point if end_point[0] != '/' else end_point
 
     @classmethod
     def describe(cls):
@@ -233,6 +233,27 @@ class EntityResource(RESTFulSchematicResource):
         super().__init__()
 
         assert issubclass(self.repository_class, repositories.base.EntityRepository)
+
+    @classmethod
+    def real_end_point(cls):
+        """Retrieve the resource end-point based on its end-point or name.
+
+        The end-point is chosen between one of the following, in desc order of priority:
+            The :end_point class property, if set by the user;
+            The :name class property, if set by the user;
+            The plural form of the name of the class, if class property :pluralize is True;
+            The name of the class.
+
+        :return: :str: the string representing the end-point of the entity resource.
+        """
+        if cls.end_point is not None:
+            end_point = cls.end_point
+        else:
+            end_point = cls.pluralize and commons.WordHelper.pluralize(cls.real_name()) or cls.real_name()
+
+        end_point = '/'.join((settings.effective.BASE_END_POINT.lower(), end_point.lower())).replace('//', '/')
+
+        return '/' + end_point if end_point[0] != '/' else end_point
 
 
 class RelationshipResource(RESTFulSchematicResource):

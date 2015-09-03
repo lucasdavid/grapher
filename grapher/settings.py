@@ -10,7 +10,13 @@ class Settings:
     DEBUG = False
     TESTING = False
 
-    BASE_URL = ''
+    # A prefix of all end-points.
+    BASE_END_POINT = ''
+
+    # If True, EntityResources will try to pluralize their name before exposing it.
+    # Notice that this behavior is overridden by the :EntityResource.pluralize class property.
+    # Additionally, pluralization will NOT happen if the user has set :EntityResource.name.
+    PLURALIZE_ENTITIES_NAMES = True
 
     DATABASES = {}
 
