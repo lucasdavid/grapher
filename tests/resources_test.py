@@ -52,7 +52,7 @@ class ResourceTest(TestCase):
             self.assertEqual(actual_response, expected)
 
     def test_response_raises_error_when_not_wrapping_lists(self):
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ValueError):
             Resource.response([1, 2, 3], count=3, wrap=False)
 
 
