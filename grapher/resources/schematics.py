@@ -1,99 +1,7 @@
 import importlib
-import flask_restful
-from flask import request
 
-from . import settings, serializers, repositories, paginators, errors, commons
-
-
-class Resource(flask_restful.Resource):
-    """Grapher's base RESTFul resource.
-
-    Sub-classes of this declared in {project}.resources module
-    are automatically loaded as resources.
-    """
-    end_point = name = description = None
-    pluralize = settings.effective.PLURALIZE_ENTITIES_NAMES
-
-    methods = ('GET', 'HEAD', 'OPTIONS', 'POST', 'PATCH', 'PUT', 'DELETE')
-
-    _paginator = None
-
-    @classmethod
-    def json(cls):
-        return request.json
-
-    @property
-    def paginator(self):
-        self._paginator = self._paginator or paginators.Paginator()
-        return self._paginator
-
-    @classmethod
-    def real_name(cls):
-        """Retrieve the resource's real name based on the overwritten property :name or the class name.
-
-        :return: :str: the name that clearly represents the resource.
-        """
-        return cls.name or cls.__name__
-
-    @classmethod
-    def real_end_point(cls):
-        """Retrieve the resource end-point based on its end-point or name.
-
-        :return: :str: the string representing the name of the resource.
-        """
-        end_point = (cls.end_point if cls.end_point is not None else cls.real_name()).lower()
-        end_point = '/'.join((settings.effective.BASE_END_POINT, end_point)).replace('//', '/')
-
-        return '/' + end_point if end_point[0] != '/' else end_point
-
-    @classmethod
-    def describe(cls):
-        return {
-            'uri': cls.real_end_point(),
-            'description': cls.description or 'Resource %s' % cls.real_name(),
-            'methods': cls.methods,
-        }
-
-    @staticmethod
-    def response(content=None, status=200, wrap=True, **meta):
-        result = {}
-
-        if meta:
-            result['_meta'] = meta
-
-        if content is not None:
-            if wrap:
-                result['content'] = content
-            else:
-                if isinstance(content, dict):
-                    result.update(content)
-                elif not meta:
-                    # No metadata to add, content is the very whole response.
-                    result = content
-                else:
-                    # There's metadata to add, but the user didn't specified if the content to be wrapped.
-                    # Since the content isn't a dictionary, merging isn't possible.
-                    raise RuntimeError(
-                        'Cannot merge %s into result dictionary. Please define '
-                        'content as a dictionary or set wrap to True.' % str(content))
-
-        return result, status
-
-    def _trigger(self, event, *args, **kwargs):
-        """Triggers a specific event, in case it has been defined.
-
-        :param event: the event to be triggered.
-        :param args: positional arguments passed to the event.
-        :param kwargs: key arguments passed to the event.
-        :return: the event's result, in case it has been defined.
-        """
-        if hasattr(self, event):
-            method = getattr(self, event)
-            if method:
-                return method(*args, **kwargs)
-
-    def options(self):
-        return self.describe()
+from .base import Resource
+from .. import settings, serializers, repositories, paginators, errors, commons
 
 
 class SchematicResource(Resource):
@@ -150,8 +58,6 @@ class SchematicResource(Resource):
 
         return self.response({'updated': entries, 'failed': declined}, wrap=False, projection=fields)
 
-
-class RESTFulSchematicResource(SchematicResource):
     def get(self):
         try:
             d = self.repository.all()
@@ -226,7 +132,7 @@ class RESTFulSchematicResource(SchematicResource):
             return self.response(status=e.status_code, errors=e.as_api_response())
 
 
-class EntityResource(RESTFulSchematicResource):
+class EntityResource(SchematicResource):
     repository_class = repositories.GraphEntityRepository
 
     def __init__(self):
@@ -256,7 +162,7 @@ class EntityResource(RESTFulSchematicResource):
         return '/' + end_point if end_point[0] != '/' else end_point
 
 
-class RelationshipResource(RESTFulSchematicResource):
+class RelationshipResource(SchematicResource):
     origin = target = None
     cardinality = commons.Cardinality.many
 
@@ -271,13 +177,13 @@ class RelationshipResource(RESTFulSchematicResource):
         if not self.origin or not self.target:
             raise ValueError('Relationship resources must have a valid origin and target attribute set.')
 
-        defined_resources = importlib.import_module('%s.%s' % (settings.effective.BASE_MODULE, 'resources'))
+        user_resources = importlib.import_module('%s.%s' % (settings.effective.BASE_MODULE, 'resources'))
 
         # If references are strings, import the actual classes.
         if isinstance(self.origin, str):
-            self.origin = getattr(self.origin, defined_resources)
+            self.origin = getattr(self.origin, user_resources)
         if isinstance(self.target, str):
-            self.origin = getattr(self.target, defined_resources)
+            self.origin = getattr(self.target, user_resources)
 
         # Make sure classes are ModelResource subclass, as they are databases' entities.
         if not issubclass(self.origin, EntityResource):
