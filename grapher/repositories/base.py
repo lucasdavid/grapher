@@ -19,13 +19,13 @@ class Repository(metaclass=abc.ABCMeta):
         self.identity = commons.SchemaNavigator.identity_from(schema)
         self.resource = resource
 
-    def all(self, skip=None, limit=None):
+    def all(self, skip=0, limit=None):
         """Retrieve all elements that share :self.label.
 
         The return must be a list of dictionaries that represent the entities retrieved.
 
         :param skip: the number of elements to skip when retrieving. If None, none element should be skipped.
-        :param limit: the maximum length of the list retrieved. If None, the list's length should is not limited.
+        :param limit: the maximum length of the list retrieved. If None, returns all elements after :skip.
         """
         raise NotImplementedError
 
@@ -40,7 +40,7 @@ class Repository(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def where(self, **query):
+    def where(self, skip=0, limit=None, **query):
         """Retrieve a collection of entities that match the query.
 
         The return must be a list of dictionaries that represent the entities retrieved.
@@ -49,6 +49,8 @@ class Repository(metaclass=abc.ABCMeta):
         :todo: eventually, where should be modified to accept a object of :QuerySet,
         a more complete query representation.
 
+        :param skip: the number of elements to skip when retrieving. If None, none element should be skipped.
+        :param limit: the maximum length of the list retrieved. If None, returns all elements after :skip.
         :param query: the query to be performed.
         """
         raise NotImplementedError
@@ -102,7 +104,7 @@ class RelationshipRepository(Repository, metaclass=abc.ABCMeta):
 
     Implementations of this interface will be used for relationship-resources' persistence.
     """
-    def match(self, origin=None, target=None, limit=None):
+    def match(self, origin=None, target=None, skip=0, limit=None):
         """Find a list of relationships.
 
         The list retrieved is based on the :origin and :target entities and
@@ -112,6 +114,7 @@ class RelationshipRepository(Repository, metaclass=abc.ABCMeta):
 
         :param origin: the identity of the entity which is the origin of the relationship.
         :param target: the identity of the entity which is the target of the relationship.
-        :param limit: the maximum length of the list retrieved. If None, the list's length should is not limited.
+        :param skip: the number of elements to skip when retrieving. If None, none element should be skipped.
+        :param limit: the maximum length of the list retrieved. If None, returns all elements after :skip.
         """
         raise NotImplementedError

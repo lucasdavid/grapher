@@ -112,10 +112,7 @@ class GraphEntityRepository(GraphRepository, base.EntityRepository):
     def _build(self, identities):
         return [self.g.node(i) for i in identities]
 
-    def all(self, skip=None, limit=None):
-        if not skip:
-            skip = 0
-
+    def all(self, skip=0, limit=None):
         if limit is not None:
             # Neo4J doesn't accept a :skip parameter, perhaps because the nodes
             # order might eventually change. If we've limited the number of entries returned,
@@ -130,11 +127,14 @@ class GraphEntityRepository(GraphRepository, base.EntityRepository):
 
         return self._data_from_entities(nodes)
 
-    def where(self, **query):
+    def where(self, skip=0, limit=None, **query):
         if len(query) != 1:
             raise ValueError('GraphRepository.where does not support multiple parameter filtering yet.')
 
-        nodes = self.g.find(self.label, *query.popitem())
+        nodes = self.g.find(self.label, *query.popitem(), limit=limit)
+
+        for _ in range(skip):
+            next(nodes)
 
         return self._data_from_entities(nodes)
 
@@ -181,13 +181,10 @@ class GraphRelationshipRepository(GraphRepository, base.RelationshipRepository):
     def _build(self, identities):
         return [self.g.relationship(i) for i in identities]
 
-    def all(self, skip=None, limit=None):
+    def all(self, skip=0, limit=None):
         # Matches every starting and ending node, as long as the
         # link between them is the :self.label associated with
         # this repository.
-        if not skip:
-            skip = 0
-
         if limit is not None:
             limit += skip
 
@@ -199,7 +196,7 @@ class GraphRelationshipRepository(GraphRepository, base.RelationshipRepository):
 
         return relationships
 
-    def match(self, origin=None, target=None, limit=None):
+    def match(self, origin=None, target=None, skip=0, limit=None):
         if origin:
             origin = self.g.node(origin)
 
@@ -207,4 +204,8 @@ class GraphRelationshipRepository(GraphRepository, base.RelationshipRepository):
             target = self.g.node(target)
 
         relationships = self.g.match(origin, self.label.upper(), target, limit=limit)
+
+        for _ in range(skip):
+            next(relationships)
+
         return self._data_from_entities(relationships)
