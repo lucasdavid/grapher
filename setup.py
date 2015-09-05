@@ -1,33 +1,35 @@
 from setuptools import setup, find_packages
 
-requirements = []
-try:
-    with open('requirements.txt') as f:
-        requirements += f.readlines()
-except IOError:
-    pass
+requirements = [
+	'Flask-Script',
+	'flask-restful',
+	'py2neo',
+	'cerberus',
+]
 
-dev_requirements = requirements[:]
-try:
-    with open('requirements-dev.txt') as f:
-        dev_requirements += f.readlines()
-except IOError:
-    pass
+test_requirements = [
+	'grapher',
+	'requests',
+	'nose',
+	'nose-parameterized',
+	'fake-factory',
+	'coverage',
+	'radon',
+	'coveralls'
+]
 
 setup(
     name='grapher',
     version='0.1',
     license='MIT',
+	url='https://github.com/lucasdavid/grapher',
+	author='Lucas David',
+	author_email='lucasdavid@drexel.edu',
+	description='RESTful APIs creator based on resource schematics.',
     long_description=open('README.md').read(),
-    packages=find_packages(include=('grapher', 'grapher.*')),
-    include_package_data=True,
-
-    install_requires=requirements,
-
-    test_requires=dev_requirements,
-    test_suite='tests.unit',
-
-    classifiers=[
+    
+	classifiers=[
+		'Framework :: Flask-RESTful',
         'Programming Language :: Python',
         'License :: MIT',
         'Natural language :: English',
@@ -35,4 +37,11 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Topic :: REST API creator',
     ],
+
+    packages=find_packages(include=('grapher', 'grapher.*')),
+    include_package_data=True,
+
+	install_requires=requirements,
+	tests_require=test_requirements,
+    test_suite='tests'
 )
