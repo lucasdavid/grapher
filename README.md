@@ -4,7 +4,7 @@
 [![Coverage Status](https://coveralls.io/repos/lucasdavid/grapher/badge.svg?branch=master&service=github)](https://coveralls.io/github/lucasdavid/grapher?branch=master)
 
 ## Introduction
-Automatic back-end service generator based on resource schematics.
+RESTful APIs creator based on resource schematics.
 
 Grapher aims at high speed development of high quality web
 [RESTFul APIs](https://en.wikipedia.org/wiki/Representational_state_transfer). The idea is to provide a automatic
