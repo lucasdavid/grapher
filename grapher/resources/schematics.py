@@ -1,7 +1,7 @@
 import importlib
 
 from .base import Resource
-from .. import settings, serializers, repositories, paginators, errors, commons
+from .. import repositories, serializers, parsers, commons, settings, errors
 
 
 class SchematicResource(Resource):
@@ -32,11 +32,19 @@ class SchematicResource(Resource):
         self._serializer = self._serializer or self.serializer_class(self.real_name(), self.schema, self)
         return self._serializer
 
-    def describe(self):
-        description = super().describe()
-        description.update(schema=self.schema)
+    def _retrieve(self):
+        skip = commons.request().args.get('skip') or 0
+        if isinstance(skip, str):
+            skip = int(skip)
 
-        return description
+        limit = commons.request().args.get('limit') or None
+        if isinstance(limit, str):
+            limit = int(limit)
+
+        query = parsers.RequestQueryParser.query_as_object()
+
+        return query and self.repository.where(skip=skip, limit=limit, **query) \
+            or self.repository.all(skip, limit)
 
     def _identify(self, entries):
         identity = commons.SchemaNavigator.identity_from(self.schema)
@@ -60,11 +68,12 @@ class SchematicResource(Resource):
 
     def get(self):
         try:
-            d = self.repository.all()
+            self._trigger('before_retrieve')
+            d = self._retrieve()
             self._trigger('after_retrieve', entries=d)
 
-            d, fields = self.serializer.project(d)
             d, page = self.paginator.paginate(d)
+            d, fields = self.serializer.project(d)
 
             return self.response(d, projection=fields, page=page)
 
@@ -118,11 +127,18 @@ class SchematicResource(Resource):
 
     def delete(self):
         try:
-            identities, _ = commons.CollectionHelper.transform(self.json())
+            if parsers.RequestQueryParser.query():
+                # Parse query from request. These entities will be deleted.
+                entries = self._retrieve()
+                identities = self._identify(entries)
+                del entries
+            else:
+                # No query was passed. Search for identities in the body.
+                identities, _ = commons.CollectionHelper.transform(self.json())
 
             self._trigger('before_delete', identities=identities)
             entries = self.repository.delete(identities)
-            self._trigger('after_delete', identities=identities)
+            self._trigger('after_delete', entries=entries)
 
             entries, fields = self.serializer.project(entries)
 
@@ -130,6 +146,13 @@ class SchematicResource(Resource):
 
         except errors.GrapherError as e:
             return self.response(status=e.status_code, errors=e.as_api_response())
+
+    @classmethod
+    def describe(cls):
+        description = super().describe()
+        description.update(schema=cls.schema)
+
+        return description
 
 
 class EntityResource(SchematicResource):

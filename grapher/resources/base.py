@@ -1,7 +1,7 @@
 import flask_restful
 from flask import request
 
-from .. import settings, paginators
+from .. import paginators, settings
 
 
 class Resource(flask_restful.Resource):
@@ -14,8 +14,6 @@ class Resource(flask_restful.Resource):
     pluralize = settings.effective.PLURALIZE_ENTITIES_NAMES
 
     methods = ('GET', 'HEAD', 'OPTIONS', 'POST', 'PATCH', 'PUT', 'DELETE')
-
-    _paginator = None
 
     @classmethod
     def json(cls):
@@ -31,8 +29,7 @@ class Resource(flask_restful.Resource):
 
     @property
     def paginator(self):
-        self._paginator = self._paginator or paginators.Paginator()
-        return self._paginator
+        return paginators.Paginator
 
     @classmethod
     def real_name(cls):

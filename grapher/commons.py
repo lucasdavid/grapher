@@ -1,4 +1,5 @@
 import abc
+import flask_restful
 from cerberus import SchemaError
 
 
@@ -163,3 +164,7 @@ class WordHelper(metaclass=abc.ABCMeta):
             suffix = 's'
         plural = root + suffix
         return plural
+
+
+def request():
+    return flask_restful.request
