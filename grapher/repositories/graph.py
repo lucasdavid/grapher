@@ -131,7 +131,11 @@ class GraphEntityRepository(GraphRepository, base.EntityRepository):
         if len(query) != 1:
             raise ValueError('GraphRepository.where does not support multiple parameter filtering yet.')
 
-        nodes = self.g.find(self.label, *query.popitem(), limit=limit)
+        query_item = query.popitem()
+        if query_item[0] == self.identity:
+            return self.find((query_item[1],))
+
+        nodes = self.g.find(self.label, *query_item, limit=limit)
 
         for _ in range(skip):
             next(nodes)

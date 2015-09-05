@@ -1,7 +1,8 @@
 import abc
 import json
+from flask_restful import request
 
-from .. import commons, errors
+from .. import errors
 
 
 class RequestQueryParser(metaclass=abc.ABCMeta):
@@ -23,7 +24,7 @@ class RequestQueryParser(metaclass=abc.ABCMeta):
 
     @classmethod
     def query(cls):
-        return commons.request().args.get(cls.request_query_keyword) or ''
+        return request.args.get(cls.request_query_keyword) or ''
 
     @classmethod
     def query_as_object(cls):

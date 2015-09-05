@@ -77,7 +77,7 @@ class GraphEntityRepositoryTest(TestCase):
             self.r.find(identities)
 
     def test_where(self):
-        self.r._g.find = Mock(side_effect=lambda p, q, r: (fake_node(),))
+        self.r._g.find = Mock(side_effect=lambda p, q, r, limit=None: (fake_node(),))
 
         actual = self.r.where(test1=10)
 

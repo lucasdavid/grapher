@@ -1,7 +1,9 @@
 from unittest import TestCase
 from unittest.mock import Mock
 from nose_parameterized import parameterized
-from grapher.resources import Resource, SchematicResource, EntityResource
+
+from grapher.resources import Resource, EntityResource, SchematicResource, schematics
+from grapher.parsers import query
 
 
 class ResourceTest(TestCase):
@@ -73,6 +75,16 @@ class SchematicResourceTest(TestCase):
 
 
 class ModelResourceTest(TestCase):
+    def setUp(self):
+        request = Mock()
+        request.base_url = 'http://localhost/test'
+        request.url = 'http://localhost/test?skip=2&limit=2'
+        request.args = Mock()
+        request.args.get = Mock(return_value=None)
+
+        schematics.request = request
+        query.request = request
+
     def test_get(self):
         r = EntityResource()
         r._repository = Mock()

@@ -1,5 +1,5 @@
 import abc
-from . import commons
+from flask_restful import request
 
 
 class Paginator(metaclass=abc.ABCMeta):
@@ -14,22 +14,22 @@ class Paginator(metaclass=abc.ABCMeta):
 
     @classmethod
     def paginate(cls, data, skip=None, limit=None):
-        skip = skip or commons.request().args.get('skip') or 0
+        skip = skip or request.args.get('skip') or 0
         skip = isinstance(skip, int) and skip or int(skip)
 
-        limit = limit or commons.request().args.get('limit') or len(data)
+        limit = limit or request.args.get('limit') or len(data)
         limit = isinstance(limit, int) and limit or int(limit)
 
         if not cls.soft_pagination:
-            data = data[skip:limit]
+            data = data[skip:skip + limit]
 
         count = len(data)
 
         return data, {
-            'current': commons.request().url,
-            'previous': commons.request().base_url + '?skip=%s&limit=%s' % (
+            'current': request.url,
+            'previous': request.base_url + '?skip=%s&limit=%s' % (
                 max(0, skip - limit), limit) if skip else None,
-            'next': commons.request().base_url + '?skip=%s&limit=%s' % (skip + count, limit),
+            'next': request.base_url + '?skip=%s&limit=%s' % (skip + count, limit),
             'skip': skip,
             'limit': limit,
             'count': count,

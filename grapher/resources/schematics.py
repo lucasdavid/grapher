@@ -1,4 +1,5 @@
 import importlib
+from flask_restful import request
 
 from .base import Resource
 from .. import repositories, serializers, parsers, commons, settings, errors
@@ -33,11 +34,11 @@ class SchematicResource(Resource):
         return self._serializer
 
     def _retrieve(self):
-        skip = commons.request().args.get('skip') or 0
+        skip = request.args.get('skip') or 0
         if isinstance(skip, str):
             skip = int(skip)
 
-        limit = commons.request().args.get('limit') or None
+        limit = request.args.get('limit') or None
         if isinstance(limit, str):
             limit = int(limit)
 
