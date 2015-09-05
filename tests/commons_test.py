@@ -1,5 +1,5 @@
 from unittest import TestCase
-
+from nose_parameterized import parameterized
 from cerberus import SchemaError
 from grapher import commons
 
@@ -49,7 +49,7 @@ class SchemaNavigatorTest(TestCase):
             commons.SchemaNavigator.identity_from(schema)
 
 
-class CollectionHelper(TestCase):
+class CollectionHelperTest(TestCase):
     def setUp(self):
         self.collections = (
             (1, 2, 3),
@@ -128,3 +128,23 @@ class CollectionHelper(TestCase):
 
         result = commons.CollectionHelper.restore_enumeration(e, previously_transformed=True)
         self.assertEqual(result, 1292)
+
+
+class WordHelperTest(TestCase):
+    @parameterized.expand([
+        (None, ''),
+        ('', ''),
+        ('remedy', 'remedies'),
+        ('octopus', 'octopuses'),
+        ('genius', 'genii'),
+        ('swiss', 'swisses'),
+        ('stash', 'stashes'),
+        ('man', 'men'),
+        ('role', 'roles'),
+        ('account', 'accounts'),
+        ('s', 'ss'),
+    ])
+    def test_pluralize(self, singular, expected):
+        actual = commons.WordHelper.pluralize(singular)
+
+        self.assertEqual(actual, expected)

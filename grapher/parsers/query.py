@@ -15,12 +15,11 @@ class RequestQueryParser(metaclass=abc.ABCMeta):
 
     @classmethod
     def _validate_query(cls, query):
-        if isinstance(query, dict):
-            for key, value in query.items():
-                if cls._is_operator(key) and key not in cls.operators:
-                    raise errors.BadRequestError(
-                        ('INVALID_QUERY', (key, str(query)), ('?where={$and:{"name": "grapher"}}',))
-                    )
+        for key, value in query.items():
+            if cls._is_operator(key) and key not in cls.operators:
+                raise errors.BadRequestError(
+                    ('INVALID_QUERY', (key, str(query)), ('?where={$and:{"name": "grapher"}}',))
+                )
 
     @classmethod
     def query(cls):

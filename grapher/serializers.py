@@ -1,3 +1,5 @@
+from flask_restful import request
+
 from . import commons, validators, errors
 
 
@@ -37,7 +39,8 @@ class Serializer:
         commons.SchemaNavigator.modify_identity_requirement(self.schema, require=require_identity)
 
         accepted, rejected = [], {}
-        v = validators.GrapherValidator(self.schema)
+
+        v = self.validator
 
         for i, e in enumerate(d):
             if v.validate(e):
@@ -76,10 +79,10 @@ class DynamicFieldsMixin:
         if self._projected_fields is None:
             fields = super().projected_fields
 
-            if commons.request().args.get('fields'):
+            if request.args.get('fields') is not None:
                 # The user has requested a field projection onto the result.
                 # Only get not empty fields, fixing requests errors such as "fields=,id,name" or "fields=id,name,"
-                request_fields = {f for f in commons.request().args.get('fields').split(',') if f}
+                request_fields = {f for f in request.args.get('fields').split(',') if f}
 
                 invalid_fields = request_fields - fields
                 if invalid_fields:
@@ -87,7 +90,7 @@ class DynamicFieldsMixin:
                     # as nonexistent fields or fields marked as not visible.
                     raise errors.BadRequestError(
                         ('INVALID_FIELDS', invalid_fields,
-                         ('%s?fields=%s' % (commons.request().base_url, ','.join(fields)),))
+                         ('%s?fields=%s' % (request.base_url, ','.join(fields)),))
                     )
 
                 self._projected_fields = fields & request_fields

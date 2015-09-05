@@ -1,4 +1,5 @@
 from unittest import TestCase
+from unittest.mock import Mock
 from nose_parameterized import parameterized
 
 from grapher import serializers, errors
@@ -85,3 +86,55 @@ class SerializerTest(TestCase):
 
         self.assertListEqual(accepted, expected[0])
         self.assertDictEqual(declined, expected[1])
+
+
+class DynamicSerializerTest(TestCase):
+    def setUp(self):
+        r = Mock()
+        r.args = Mock()
+        r.args.get = Mock(return_value=None)
+
+        serializers.request = r
+
+    @parameterized.expand([
+        ({'a': {'type': 'string'}, 'b': {'type': 'integer'}}, 'a', {'a'}),
+        ({'a': {'type': 'string'}}, 'a', {'a'}),
+        ({'a': {'type': 'string'}}, '', set()),
+        ({'a': {'type': 'string'}, 'b': {'type': 'integer'}}, None, {'a', 'b'}),
+    ])
+    def test_projected_fields(self, schema, request_fields, expected):
+        serializers.request.args.get.return_value = request_fields
+
+        s = serializers.DynamicSerializer('test', schema)
+        actual = s.projected_fields
+
+        self.assertEqual(actual, expected)
+
+    def test_projected_fields_store_result(self):
+        s = serializers.DynamicSerializer('test', {'name': {'type': 'string'}})
+        fields = s.projected_fields
+        fields_a_second_time = s.projected_fields
+
+        self.assertIs(fields, fields_a_second_time)
+
+    def test_projected_fields_raises_bad_request(self):
+        serializers.request.args.get.return_value = 'name,age,_id,products,test,test2'
+
+        with self.assertRaises(errors.BadRequestError):
+            serializers.DynamicSerializer('test', {}).projected_fields
+
+
+class RelationshipSerializerTest(TestCase):
+    @parameterized.expand([
+        ({'name': {'type': 'string'}}, [{'name': 'test'}], 1, 0),
+        ({'name': {'type': 'string'}}, [{'name': 0}], 0, 1),
+        ({'age': {'type': 'integer'}}, [{'age': 21}], 1, 0),
+        ({'age': {'type': 'integer'}}, [{'age': 'test'}], 0, 1),
+    ])
+    def test_validate(self, schema, data, expected_accepted_len, expected_rejected_len):
+        s = serializers.RelationshipSerializer('test', schema)
+
+        accepted, rejected = s.validate(data)
+
+        self.assertEqual(len(accepted), expected_accepted_len)
+        self.assertEqual(len(rejected), expected_rejected_len)

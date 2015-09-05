@@ -1,9 +1,7 @@
 from unittest import TestCase
-from unittest.mock import Mock
 from nose_parameterized import parameterized
 
-from grapher.resources import Resource, EntityResource, SchematicResource, schematics
-from grapher.parsers import query
+from grapher.resources import Resource
 
 
 class ResourceTest(TestCase):
@@ -57,49 +55,13 @@ class ResourceTest(TestCase):
         with self.assertRaises(ValueError):
             Resource.response([1, 2, 3], count=3, wrap=False)
 
+    def test_options(self):
+        class User(Resource):
+            name = 'test-user'
+            end_point = 'awesome-test-user'
+            methods = ('GET', 'POST')
 
-class SchematicResourceTest(TestCase):
-    def test_init(self):
-        r = SchematicResource()
+        expected = {'description': 'Resource test-user', 'methods': ('GET', 'POST'), 'uri': '/awesome-test-user'}
 
-        self.assertIn('_id', r.schema)
-        self.assertIn('identity', r.schema['_id'])
-        self.assertTrue(r.schema['_id']['identity'])
-
-        SchematicResource.schema = {'name': {'type': 'integer', 'identity': True}}
-        r = SchematicResource()
-
-        self.assertIn('name', r.schema)
-        self.assertIn('identity', r.schema['name'])
-        self.assertTrue(r.schema['name']['identity'])
-
-
-class ModelResourceTest(TestCase):
-    def setUp(self):
-        request = Mock()
-        request.base_url = 'http://localhost/test'
-        request.url = 'http://localhost/test?skip=2&limit=2'
-        request.args = Mock()
-        request.args.get = Mock(return_value=None)
-
-        schematics.request = request
-        query.request = request
-
-    def test_get(self):
-        r = EntityResource()
-        r._repository = Mock()
-        r._repository.all = Mock(return_value=[{'test': 1} for _ in range(4)])
-        r._serializer = Mock()
-        r._serializer.project = Mock(side_effect=lambda d: (d, ['test']))
-        r._paginator = Mock()
-        r._paginator.paginate = Mock(side_effect=lambda d: (d, {}))
-
-        response, status = r.get()
-
-        self.assertEqual(status, 200)
-        self.assertIn('_meta', response)
-        self.assertIn('page', response['_meta'])
-        self.assertIn('projection', response['_meta'])
-
-        self.assertIn('content', response)
-        self.assertEqual(len(response['content']), 4)
+        actual = User().options()
+        self.assertDictEqual(actual, expected)

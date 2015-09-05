@@ -12,6 +12,8 @@ class GraphValidatorTest(TestCase):
         ({'_id': {'type': 'integer'}}, {}, True),
         ({'_id': {'type': 'integer', 'identity': False}}, {}, True),
         ({'_id': {'type': 'integer', 'identity': False}}, {'_id': 1}, True),
+        ({'age': {'type': 'integer', 'visible': False}}, {'age': 21}, True),
+        ({'name': {'type': 'string', 'index': True}}, {'name': 'test'}, True),
     ])
     def test_valid_identities(self, schema, document, expected):
         v = validators.GrapherValidator(schema)

@@ -201,13 +201,14 @@ class RelationshipResource(SchematicResource):
         if not self.origin or not self.target:
             raise ValueError('Relationship resources must have a valid origin and target attribute set.')
 
-        user_resources = importlib.import_module('%s.%s' % (settings.effective.BASE_MODULE, 'resources'))
+        # If one of the references are strings, import the actual classes.
+        if isinstance(self.origin, str) or isinstance(self.target, str):
+            user_resources = importlib.import_module('%s.%s' % (settings.effective.BASE_MODULE, 'resources'))
 
-        # If references are strings, import the actual classes.
-        if isinstance(self.origin, str):
-            self.origin = getattr(self.origin, user_resources)
-        if isinstance(self.target, str):
-            self.origin = getattr(self.target, user_resources)
+            if isinstance(self.origin, str):
+                self.origin = getattr(self.origin, user_resources)
+            if isinstance(self.target, str):
+                self.origin = getattr(self.target, user_resources)
 
         # Make sure classes are ModelResource subclass, as they are databases' entities.
         if not issubclass(self.origin, EntityResource):
@@ -234,14 +235,15 @@ class RelationshipResource(SchematicResource):
             'type': self.target.schema[identity]['type']
         }
 
-    def describe(self):
+    @classmethod
+    def describe(cls):
         description = super().describe()
         description.update(
-            description=self.description or 'Relationship %s' % self.real_name(),
+            description=cls.description or 'Relationship %s' % cls.real_name(),
             relationship={
-                'origin': self.origin.real_name(),
-                'target': self.target.real_name(),
-                'cardinality': self.cardinality
+                'origin': cls.origin.real_name(),
+                'target': cls.target.real_name(),
+                'cardinality': cls.cardinality
             }
         )
 
