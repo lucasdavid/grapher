@@ -59,9 +59,9 @@ class SchematicResource(Resource):
     def _update(self, entries):
         entries, rejected = self.serializer.validate(entries)
 
-        self._trigger('before_update', entries=entries)
+        self.trigger('before_update', entries=entries)
         entries = self.repository.update(entries)
-        self._trigger('after_update', entries=entries)
+        self.trigger('after_update', entries=entries)
 
         entries, fields = self.serializer.project(entries)
 
@@ -77,9 +77,9 @@ class SchematicResource(Resource):
 
     def get(self):
         try:
-            self._trigger('before_retrieve')
+            self.trigger('before_retrieve')
             d = self._retrieve()
-            self._trigger('after_retrieve', entries=d)
+            self.trigger('after_retrieve', entries=d)
 
             d, page = self.paginator.paginate(d)
             d, fields = self.serializer.project(d)
@@ -94,9 +94,9 @@ class SchematicResource(Resource):
             entries, _ = commons.CollectionHelper.transform(request.form)
             entries, rejected = self.serializer.validate(entries)
 
-            self._trigger('before_create', entries=entries)
+            self.trigger('before_create', entries=entries)
             entries = self.repository.create(entries)
-            self._trigger('after_create', entries=entries)
+            self.trigger('after_create', entries=entries)
 
             entries, fields = self.serializer.project(entries)
 
@@ -157,9 +157,9 @@ class SchematicResource(Resource):
             identities = self._identify(entries)
             del entries
 
-            self._trigger('before_delete', identities=identities)
+            self.trigger('before_delete', identities=identities)
             entries = self.repository.delete(identities)
-            self._trigger('after_delete', entries=entries)
+            self.trigger('after_delete', entries=entries)
 
             entries, fields = self.serializer.project(entries)
 

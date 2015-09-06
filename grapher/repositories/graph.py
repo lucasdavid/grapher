@@ -114,9 +114,6 @@ class GraphEntityRepository(GraphRepository, base.EntityRepository):
 
     def all(self, skip=0, limit=None):
         if limit is not None:
-            # Neo4J doesn't accept a :skip parameter, perhaps because the nodes
-            # order might eventually change. If we've limited the number of entries returned,
-            # we must add the number of entries skipped as well, so they can be removed by the serializer.
             limit += skip
 
         nodes = self.g.find(self.label, limit=limit)
@@ -134,6 +131,9 @@ class GraphEntityRepository(GraphRepository, base.EntityRepository):
         query_item = query.popitem()
         if query_item[0] == self.identity:
             return self.find((query_item[1],))
+
+        if limit is not None:
+            limit += skip
 
         nodes = self.g.find(self.label, *query_item, limit=limit)
 
@@ -186,19 +186,12 @@ class GraphRelationshipRepository(GraphRepository, base.RelationshipRepository):
         return [self.g.relationship(i) for i in identities]
 
     def all(self, skip=0, limit=None):
-        # Matches every starting and ending node, as long as the
-        # link between them is the :self.label associated with
-        # this repository.
-        if limit is not None:
-            limit += skip
+        """Match all relationships, as long as they share the same label with this repository.
 
-        relationships = self.match(limit=limit)
-
-        # Discard :skip elements.
-        for _ in range(skip):
-            next(relationships)
-
-        return relationships
+        :param skip: the number of elements to skip when retrieving. If None, none element should be skipped.
+        :param limit: the maximum length of the list retrieved. If None, returns all elements after :skip.
+        """
+        return self.match(skip=skip, limit=limit)
 
     def match(self, origin=None, target=None, skip=0, limit=None):
         if origin:
@@ -206,6 +199,9 @@ class GraphRelationshipRepository(GraphRepository, base.RelationshipRepository):
 
         if target:
             target = self.g.node(target)
+
+        if limit is not None:
+            limit += skip
 
         relationships = self.g.match(origin, self.label.upper(), target, limit=limit)
 

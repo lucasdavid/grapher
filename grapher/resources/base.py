@@ -87,8 +87,8 @@ class Resource(flask_restful.Resource):
 
         return result, status
 
-    def _trigger(self, event, *args, **kwargs):
-        """Triggers a specific event, in case it has been defined.
+    def trigger(self, event, *args, **kwargs):
+        """Trigger a specific event, in case it has been defined.
 
         :param event: the event to be triggered.
         :param args: positional arguments passed to the event.

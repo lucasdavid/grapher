@@ -105,7 +105,7 @@ class RelationshipRepository(Repository, metaclass=abc.ABCMeta):
     Implementations of this interface will be used for relationship-resources' persistence.
     """
     def match(self, origin=None, target=None, skip=0, limit=None):
-        """Find a list of relationships.
+        """Match all relationships, as long as they share the same label with this repository.
 
         The list retrieved is based on the :origin and :target entities and
         the :self.label property of this repository.
