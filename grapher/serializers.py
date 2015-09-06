@@ -58,11 +58,6 @@ class Serializer:
         return d, list(self.projected_fields)
 
 
-class RelationshipSerializer(Serializer):
-    def validate(self, d):
-        return super().validate(d)
-
-
 class DynamicFieldsMixin:
     @property
     def projected_fields(self):

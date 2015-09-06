@@ -15,6 +15,15 @@ class Resource(flask_restful.Resource):
 
     methods = ('GET', 'HEAD', 'OPTIONS', 'POST', 'PATCH', 'PUT', 'DELETE')
 
+    initialized = False
+
+    def __init__(self):
+        self.initialize()
+
+    @classmethod
+    def initialize(cls):
+        cls.initialized = True
+
     @property
     def paginator(self):
         return paginators.Paginator

@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock
-from nose_parameterized import parameterized
 
+from nose_parameterized import parameterized
 from grapher import serializers, errors
 
 
@@ -122,19 +122,3 @@ class DynamicSerializerTest(TestCase):
 
         with self.assertRaises(errors.BadRequestError):
             serializers.DynamicSerializer('test', {}).projected_fields
-
-
-class RelationshipSerializerTest(TestCase):
-    @parameterized.expand([
-        ({'name': {'type': 'string'}}, [{'name': 'test'}], 1, 0),
-        ({'name': {'type': 'string'}}, [{'name': 0}], 0, 1),
-        ({'age': {'type': 'integer'}}, [{'age': 21}], 1, 0),
-        ({'age': {'type': 'integer'}}, [{'age': 'test'}], 0, 1),
-    ])
-    def test_validate(self, schema, data, expected_accepted_len, expected_rejected_len):
-        s = serializers.RelationshipSerializer('test', schema)
-
-        accepted, rejected = s.validate(data)
-
-        self.assertEqual(len(accepted), expected_accepted_len)
-        self.assertEqual(len(rejected), expected_rejected_len)

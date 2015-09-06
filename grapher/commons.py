@@ -84,7 +84,11 @@ class SchemaNavigator(metaclass=abc.ABCMeta):
 
 class Cardinality(metaclass=abc.ABCMeta):
     one = '1'
+    one_to_many = '1-*'
+    many_to_one = '*-1'
     many = '*'
+
+    types = {one, one_to_many, many_to_one, many}
 
 
 class WordHelper(metaclass=abc.ABCMeta):

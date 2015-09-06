@@ -11,13 +11,15 @@ class SchematicResource(Resource):
     repository_class = repositories.base.Repository
     serializer_class = serializers.DynamicSerializer
 
-    def __init__(self):
-        super().__init__()
+    @classmethod
+    def initialize(cls):
+        if not cls.initialized:
+            super().initialize()
 
-        if not self.schema:
-            self.schema = {}
+            if not cls.schema:
+                cls.schema = {}
 
-        commons.SchemaNavigator.add_identity(self.schema)
+            commons.SchemaNavigator.add_identity(cls.schema)
 
     _repository = None
 
@@ -45,7 +47,7 @@ class SchematicResource(Resource):
         query = parsers.RequestQueryParser.query_as_object()
 
         return query and self.repository.where(skip=skip, limit=limit, **query) \
-            or self.repository.all(skip, limit)
+               or self.repository.all(skip, limit)
 
     def _identify(self, entries):
         identity = commons.SchemaNavigator.identity_from(self.schema)
@@ -179,10 +181,12 @@ class SchematicResource(Resource):
 class EntityResource(SchematicResource):
     repository_class = repositories.GraphEntityRepository
 
-    def __init__(self):
-        super().__init__()
+    @classmethod
+    def initialize(cls):
+        if not cls.initialized:
+            super().initialize()
 
-        assert issubclass(self.repository_class, repositories.base.EntityRepository)
+            assert issubclass(cls.repository_class, repositories.base.EntityRepository)
 
     @classmethod
     def real_end_point(cls):
@@ -211,49 +215,61 @@ class RelationshipResource(SchematicResource):
     cardinality = commons.Cardinality.many
 
     repository_class = repositories.GraphRelationshipRepository
-    serializer_class = serializers.DynamicRelationshipSerializer
 
-    def __init__(self):
-        super().__init__()
+    @classmethod
+    def initialize(cls):
+        if not cls.initialized:
+            super().initialize()
 
-        assert issubclass(self.repository_class, repositories.base.RelationshipRepository)
+            assert issubclass(cls.repository_class, repositories.base.RelationshipRepository)
 
-        if not self.origin or not self.target:
-            raise ValueError('Relationship resources must have a valid origin and target attribute set.')
+            if not cls.origin or not cls.target:
+                raise ValueError('Relationship resources must have a valid origin and target attribute set.')
 
-        # If one of the references are strings, import the actual classes.
-        if isinstance(self.origin, str) or isinstance(self.target, str):
-            user_resources = importlib.import_module('%s.%s' % (settings.effective.BASE_MODULE, 'resources'))
+            # If one of the references are strings, import the actual classes.
+            if isinstance(cls.origin, str) or isinstance(cls.target, str):
+                user_resources = importlib.import_module('%s.%s' % (settings.effective.BASE_MODULE, 'resources'))
 
-            if isinstance(self.origin, str):
-                self.origin = getattr(user_resources, self.origin)
-            if isinstance(self.target, str):
-                self.target = getattr(user_resources, self.target)
+                if isinstance(cls.origin, str):
+                    cls.origin = getattr(user_resources, cls.origin)
+                if isinstance(cls.target, str):
+                    cls.target = getattr(user_resources, cls.target)
 
-        # Make sure classes are ModelResource subclass, as they are databases' entities.
-        if not issubclass(self.origin, EntityResource):
-            raise ValueError(
-                'Origin references {%s}. Try a ModelResource subclass instead.' % EntityResource.__name__)
-        if not issubclass(self.target, EntityResource):
-            raise ValueError(
-                'Target references {%s}. Try a ModelResource subclass instead.' % EntityResource.__name__)
+            # Initialize origin and target resources, as we have to access their schemas.
+            cls.origin.initialize()
+            cls.target.initialize()
 
-        if self.cardinality != '1' and self.cardinality != '*':
-            raise ValueError('Cardinality must be "1" or "*" and %s was given.' % str(self.cardinality))
+            # Make sure classes are :EntityResource sub-class, as they are databases' entities.
+            if not issubclass(cls.origin, EntityResource):
+                raise ValueError(
+                    'Origin references {%s}. Try a EntityResource subclass instead.' % EntityResource.__name__)
+            if not issubclass(cls.target, EntityResource):
+                raise ValueError(
+                    'Target references {%s}. Try a EntityResource subclass instead.' % EntityResource.__name__)
 
-        # Injecting :_origin and :_target properties in schema.
-        # They are fundamental as this is a relationship resource.
-        identity = commons.SchemaNavigator.add_identity(self.origin.schema)
-        self.schema['_origin'] = {
-            'required': True,
-            'type': self.origin.schema[identity]['type']
-        }
+            # Check if cardinality has a valid value.
+            if cls.cardinality not in commons.Cardinality.types:
+                raise ValueError('Cardinality must be one of the following: %s. %s was given.' % (
+                    str(commons.Cardinality.types), str(cls.cardinality)))
 
-        identity = commons.SchemaNavigator.add_identity(self.target.schema)
-        self.schema['_target'] = {
-            'required': True,
-            'type': self.target.schema[identity]['type']
-        }
+            c = cls.cardinality.split('-')
+            c = c if len(c) > 1 else c + c
+
+            # Injecting :_origin and :_target properties in schema.
+            # They are fundamental as this is a relationship resource.
+            identity = commons.SchemaNavigator.add_identity(cls.origin.schema)
+            cls.schema['_origin'] = {
+                'required': True,
+                'type': cls.origin.schema[identity]['type'],
+                'cardinality': c[0]
+            }
+
+            identity = commons.SchemaNavigator.add_identity(cls.target.schema)
+            cls.schema['_target'] = {
+                'required': True,
+                'type': cls.target.schema[identity]['type'],
+                'cardinality': c[1]
+            }
 
     @classmethod
     def describe(cls):

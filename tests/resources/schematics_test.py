@@ -220,6 +220,7 @@ class RelationshipResourceTest(TestCase):
     def test_init_with_origin_and_target_as_strings(self):
         class Members(test_resources.Members):
             origin = 'Group'
+            initialized = False
 
         m = Members()
 
@@ -228,9 +229,9 @@ class RelationshipResourceTest(TestCase):
         self.assertIn('_id', m.origin.schema)
         self.assertIn('_id', m.target.schema)
 
-        class Members(test_resources.Members):
-            origin = test_resources.Group
-            target = 'User'
+        Members.origin = test_resources.Group
+        Members.target = 'User'
+        Members.initialized = False
 
         m = Members()
 
@@ -242,6 +243,7 @@ class RelationshipResourceTest(TestCase):
     def test_init_fail_with_entity_repository(self):
         class Members(test_resources.Members):
             repository_class = repositories.GraphEntityRepository
+            initialized = False
 
         with self.assertRaises(AssertionError):
             Members()
@@ -250,25 +252,30 @@ class RelationshipResourceTest(TestCase):
         class Members(test_resources.Members):
             origin = None
             target = None
+            initialized = False
 
         with self.assertRaises(ValueError):
             Members()
+        Members.initialized = False
         Members.origin = test_resources.User
 
         with self.assertRaises(ValueError):
             Members()
+        Members.initialized = False
         Members.origin = Members.target = Members
 
         with self.assertRaises(ValueError):
             Members()
+        Members.initialized = False
         Members.origin = test_resources.User
+
         with self.assertRaises(ValueError):
             Members()
-        Members.target = test_resources.Group
 
     def test_init_fails_with_invalid_cardinality(self):
         class Members(test_resources.Members):
             cardinality = 'not-a-valid-cardinality'
+            initialized = False
 
         with self.assertRaises(ValueError):
             Members()

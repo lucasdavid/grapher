@@ -20,8 +20,9 @@ class Docs(resources.Resource):
             'resources': {},
         }
 
-        for resource_class in self.resources_to_describe:
-            r = resource_class()
-            d['resources'][r.real_name()] = r.describe()
+        for resource in self.resources_to_describe:
+            resource.initialize()
+
+            d['resources'][resource.real_name()] = resource.describe()
 
         return self.response(d, wrap=False)
