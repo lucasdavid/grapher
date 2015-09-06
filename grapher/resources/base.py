@@ -15,18 +15,6 @@ class Resource(flask_restful.Resource):
 
     methods = ('GET', 'HEAD', 'OPTIONS', 'POST', 'PATCH', 'PUT', 'DELETE')
 
-    @classmethod
-    def json(cls):
-        """Wrap :request.json
-
-        Used for testing, as we don't have access to requests in a unit-test environment.
-        Additionally, might be overridden by sub-classes in order to pre-process input data
-        before handling it to serializers.
-
-        :return: :list or :dict which represents json data from the current request.
-        """
-        return request.json
-
     @property
     def paginator(self):
         return paginators.Paginator
@@ -109,8 +97,7 @@ class Resource(flask_restful.Resource):
         """
         if hasattr(self, event):
             method = getattr(self, event)
-            if method:
-                return method(*args, **kwargs)
+            return method(*args, **kwargs)
 
     def options(self):
         """Options HTTP method.

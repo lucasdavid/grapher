@@ -33,7 +33,7 @@ class Serializer:
     def validate(self, d, require_identity=False):
         if not d:
             raise errors.BadRequestError(
-                ('DATA_CANNOT_BE_EMPTY', (d,), ([{'hello': 'world'}],)),
+                ('DATA_CANNOT_BE_EMPTY', (), ([{'hello': 'world'}],)),
             )
 
         commons.SchemaNavigator.modify_identity_requirement(self.schema, require=require_identity)

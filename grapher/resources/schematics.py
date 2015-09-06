@@ -51,7 +51,7 @@ class SchematicResource(Resource):
         identity = commons.SchemaNavigator.identity_from(self.schema)
 
         try:
-            return (e[identity] for e in entries)
+            return [e[identity] for e in entries]
 
         except KeyError:
             raise errors.BadRequestError('UNIDENTIFIABLE')
@@ -83,7 +83,7 @@ class SchematicResource(Resource):
 
     def post(self):
         try:
-            entries, _ = commons.CollectionHelper.transform(self.json())
+            entries, _ = commons.CollectionHelper.transform(request.form)
             entries, declined = self.serializer.validate(entries)
 
             self._trigger('before_create', entries=entries)
@@ -99,7 +99,7 @@ class SchematicResource(Resource):
 
     def put(self):
         try:
-            entries, _ = commons.CollectionHelper.transform(self.json())
+            entries, _ = commons.CollectionHelper.transform(request.form)
             # Makes sure every entry has an identity.
             self._identify(entries)
 
@@ -110,7 +110,7 @@ class SchematicResource(Resource):
 
     def patch(self):
         try:
-            r, _ = commons.CollectionHelper.transform(self.json())
+            r, _ = commons.CollectionHelper.transform(request.form)
 
             # We need all the entities' data to run meaningful validations.
             identities = self._identify(r)
@@ -131,11 +131,15 @@ class SchematicResource(Resource):
             if parsers.RequestQueryParser.query():
                 # Parse query from request. These entities will be deleted.
                 entries = self._retrieve()
-                identities = self._identify(entries)
-                del entries
             else:
                 # No query was passed. Search for identities in the body.
-                identities, _ = commons.CollectionHelper.transform(self.json())
+                entries, _ = commons.CollectionHelper.transform(request.form)
+
+            if not entries:
+                raise errors.BadRequestError('DATA_CANNOT_BE_EMPTY')
+
+            identities = self._identify(entries)
+            del entries
 
             self._trigger('before_delete', identities=identities)
             entries = self.repository.delete(identities)
@@ -206,9 +210,9 @@ class RelationshipResource(SchematicResource):
             user_resources = importlib.import_module('%s.%s' % (settings.effective.BASE_MODULE, 'resources'))
 
             if isinstance(self.origin, str):
-                self.origin = getattr(self.origin, user_resources)
+                self.origin = getattr(user_resources, self.origin)
             if isinstance(self.target, str):
-                self.origin = getattr(self.target, user_resources)
+                self.target = getattr(user_resources, self.target)
 
         # Make sure classes are ModelResource subclass, as they are databases' entities.
         if not issubclass(self.origin, EntityResource):

@@ -76,6 +76,7 @@ class Production(Settings):
 
 class Testing(Settings):
     TESTING = True
+    BASE_MODULE = 'tests.examples'
 
 
 effective = Development
