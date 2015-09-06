@@ -27,7 +27,7 @@ class Author(resources.EntityResource):
         'name': {'type': 'string', 'required': True}
     }
 
-class Authorship(resources.EntityResource):
+class Authorship(resources.RelationshipResource):
     origin = Author
     target = Book
     cardinality = Cardinality.many
