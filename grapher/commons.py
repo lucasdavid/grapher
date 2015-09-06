@@ -81,13 +81,6 @@ class SchemaNavigator(metaclass=abc.ABCMeta):
 
         return identity
 
-    @classmethod
-    def modify_identity_requirement(cls, schema, require=True):
-        identity = cls.add_identity(schema)
-        schema[identity]['required'] = require
-
-        return cls
-
 
 class Cardinality(metaclass=abc.ABCMeta):
     one = '1'

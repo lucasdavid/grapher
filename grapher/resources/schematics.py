@@ -57,7 +57,7 @@ class SchematicResource(Resource):
             raise errors.BadRequestError('UNIDENTIFIABLE')
 
     def _update(self, entries):
-        entries, declined = self.serializer.validate(entries, require_identity=True)
+        entries, declined = self.serializer.validate(entries)
 
         self._trigger('before_update', entries=entries)
         entries = self.repository.update(entries)

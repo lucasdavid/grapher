@@ -30,13 +30,11 @@ class Serializer:
         self._validator = self._validator or validators.GrapherValidator(self.schema)
         return self._validator
 
-    def validate(self, d, require_identity=False):
+    def validate(self, d):
         if not d:
             raise errors.BadRequestError(
                 ('DATA_CANNOT_BE_EMPTY', (), ([{'hello': 'world'}],)),
             )
-
-        commons.SchemaNavigator.modify_identity_requirement(self.schema, require=require_identity)
 
         accepted, rejected = [], {}
 
@@ -47,8 +45,6 @@ class Serializer:
                 accepted.append(e)
             else:
                 rejected[i] = v.errors
-
-        commons.SchemaNavigator.modify_identity_requirement(self.schema, require=False)
 
         return accepted, rejected
 
@@ -63,8 +59,8 @@ class Serializer:
 
 
 class RelationshipSerializer(Serializer):
-    def validate(self, d, require_identity=False):
-        return super().validate(d, require_identity)
+    def validate(self, d):
+        return super().validate(d)
 
 
 class DynamicFieldsMixin:
