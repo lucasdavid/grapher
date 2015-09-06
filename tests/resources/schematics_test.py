@@ -130,9 +130,7 @@ class EntityResourceTest(TestCase):
         self.assertIn('_meta', response)
         self.assertIn('projection', response['_meta'])
         self.assertIn('updated', response)
-        self.assertIn('failed', response)
         self.assertEqual(len(response['updated']), len(self.data))
-        self.assertEqual(len(response['failed']), 0)
 
     def test_patch_empty_data(self):
         schematics.request.form = []
