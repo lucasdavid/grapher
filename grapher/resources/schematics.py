@@ -57,7 +57,7 @@ class SchematicResource(Resource):
             raise errors.BadRequestError('UNIDENTIFIABLE')
 
     def _update(self, entries):
-        entries, declined = self.serializer.validate(entries)
+        entries, rejected = self.serializer.validate(entries)
 
         self._trigger('before_update', entries=entries)
         entries = self.repository.update(entries)
@@ -65,7 +65,15 @@ class SchematicResource(Resource):
 
         entries, fields = self.serializer.project(entries)
 
-        return self.response({'updated': entries, 'failed': declined}, wrap=False, projection=fields)
+        status = 207 if entries and rejected else 200 if entries else 400
+
+        content = {}
+        if entries:
+            content['updated'] = entries
+        if rejected:
+            content['failed'] = rejected
+
+        return self.response(content, status=status, wrap=False, projection=fields)
 
     def get(self):
         try:
@@ -84,7 +92,7 @@ class SchematicResource(Resource):
     def post(self):
         try:
             entries, _ = commons.CollectionHelper.transform(request.form)
-            entries, declined = self.serializer.validate(entries)
+            entries, rejected = self.serializer.validate(entries)
 
             self._trigger('before_create', entries=entries)
             entries = self.repository.create(entries)
@@ -92,7 +100,15 @@ class SchematicResource(Resource):
 
             entries, fields = self.serializer.project(entries)
 
-            return self.response({'created': entries, 'failed': declined}, wrap=False, projection=fields)
+            status = 207 if entries and rejected else 200 if entries else 400
+
+            content = {}
+            if entries:
+                content['created'] = entries
+            if rejected:
+                content['failed'] = rejected
+
+            return self.response(content, status=status, wrap=False, projection=fields)
 
         except errors.GrapherError as e:
             return self.response(status=e.status_code, errors=e.as_api_response(), wrap=False)
