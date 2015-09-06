@@ -1,5 +1,0 @@
-Flask
-Flask-Script
-flask-restful
-py2neo
-cerberus
