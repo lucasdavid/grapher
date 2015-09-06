@@ -1,0 +1,7 @@
+requests
+nose
+nose-parameterized
+fake-factory
+coverage
+radon
+coveralls
