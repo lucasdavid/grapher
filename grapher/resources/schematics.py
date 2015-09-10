@@ -178,6 +178,7 @@ class SchematicResource(Resource):
 
 
 class EntityResource(SchematicResource):
+    pluralize = settings.effective.PLURALIZE_ENTITIES_NAMES
     repository_class = repositories.GraphEntityRepository
 
     @classmethod

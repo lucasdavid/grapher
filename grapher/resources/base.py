@@ -10,14 +10,10 @@ class Resource(flask_restful.Resource):
     module are automatically loaded as resources.
     """
     end_point = name = description = None
-    pluralize = settings.effective.PLURALIZE_ENTITIES_NAMES
 
     methods = ('GET', 'HEAD', 'OPTIONS', 'POST', 'PATCH', 'PUT', 'DELETE')
 
     initialized = False
-
-    def __init__(self):
-        self.initialize()
 
     @classmethod
     def initialize(cls):

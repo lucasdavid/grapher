@@ -21,8 +21,6 @@ class Docs(resources.Resource):
         }
 
         for resource in self.resources_to_describe:
-            resource.initialize()
-
             d['resources'][resource.real_name()] = resource.describe()
 
         return self.response(d, wrap=False)

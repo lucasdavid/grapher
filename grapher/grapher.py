@@ -24,6 +24,7 @@ class Grapher:
         # Start the API, loading all resources and documenting itself.
         rs = self._scan_resources()
         for r in rs:
+            r.initialize()
             self.api.add_resource(r, r.real_end_point())
 
         # Gives all resources scanned to the Docs resource and register it.
