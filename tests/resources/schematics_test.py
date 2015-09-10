@@ -35,7 +35,7 @@ class EntityResourceTest(TestCase):
         request.url = 'http://localhost/test?skip=2&limit=2'
         request.args = Mock()
         request.args.get = Mock(return_value=None)
-        request.form = [{'name': f.name(), 'age': f.random_int(20, 40)} for _ in range(4)]
+        request.get_json = Mock(return_value=[{'name': f.name(), 'age': f.random_int(20, 40)} for _ in range(4)])
 
         schematics.request = request
         query.request = request
@@ -102,7 +102,7 @@ class EntityResourceTest(TestCase):
         self.assertEqual(len(response['created']), len(self.data))
 
     def test_put(self):
-        schematics.request.form = self.entities_with_ids
+        schematics.request.get_json = Mock(return_value=self.entities_with_ids)
         user = test_resources.User()
         user._repository = Mock()
         user._repository.find = Mock(side_effect=lambda e: self.entities_with_ids)
@@ -117,7 +117,7 @@ class EntityResourceTest(TestCase):
         self.assertEqual(len(response['updated']), len(self.data))
 
     def test_patch(self):
-        schematics.request.form = self.entities_with_ids
+        schematics.request.get_json = Mock(return_value=self.entities_with_ids)
 
         user = test_resources.User()
         user._repository = Mock()
@@ -133,7 +133,7 @@ class EntityResourceTest(TestCase):
         self.assertEqual(len(response['updated']), len(self.data))
 
     def test_patch_empty_data(self):
-        schematics.request.form = []
+        schematics.request.get_json = Mock(return_value=[])
 
         user = test_resources.User()
         user._repository = Mock()
@@ -148,7 +148,7 @@ class EntityResourceTest(TestCase):
         self.assertIn('DATA_CANNOT_BE_EMPTY', response['_meta']['errors'])
 
     def test_patch_with_invalid_data(self):
-        schematics.request.form = self.data
+        schematics.request.get_json = Mock(return_value=self.data)
 
         user = test_resources.User()
         user._repository = Mock()
@@ -178,7 +178,7 @@ class EntityResourceTest(TestCase):
         self.assertEqual(len(response['deleted']), len(self.entities_with_ids))
 
     def test_delete_from_body(self):
-        schematics.request.form = self.entities_with_ids
+        schematics.request.get_json = Mock(return_value=self.entities_with_ids)
         user = test_resources.User()
         user._repository = Mock()
         user._repository.delete = Mock(side_effect=lambda e: self.entities_with_ids)
@@ -192,8 +192,7 @@ class EntityResourceTest(TestCase):
         self.assertEqual(len(response['deleted']), len(self.entities_with_ids))
 
     def test_delete_empty_data(self):
-        schematics.request.form = []
-
+        schematics.request.get_json = Mock(return_value=[])
         user = test_resources.User()
         user._repository = Mock()
 
