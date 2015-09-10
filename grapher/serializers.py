@@ -1,6 +1,6 @@
 from flask_restful import request
 
-from . import commons, validators, errors
+from . import validators, errors
 
 
 class Serializer:
@@ -9,10 +9,9 @@ class Serializer:
     All data must be validated by a serializer before being sent to repositories.
     """
 
-    def __init__(self, label, schema, resource=None):
+    def __init__(self, label, schema):
         self.label = label
         self.schema = schema
-        self.resource = resource
 
     _projected_fields = None
 
@@ -58,7 +57,7 @@ class Serializer:
         return d, list(self.projected_fields)
 
 
-class DynamicFieldsMixin:
+class DynamicSerializer(Serializer):
     @property
     def projected_fields(self):
         """Overrides BaseSerializer :project_fields property to consider fields requested by the user.
@@ -87,11 +86,3 @@ class DynamicFieldsMixin:
                 self._projected_fields = fields & request_fields
 
         return self._projected_fields
-
-
-class DynamicSerializer(DynamicFieldsMixin, Serializer):
-    pass
-
-
-class DynamicRelationshipSerializer(DynamicFieldsMixin, Serializer):
-    pass
