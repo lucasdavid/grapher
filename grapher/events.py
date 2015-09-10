@@ -21,6 +21,8 @@ class EventManager:
 
         self.events[event].append(handler)
 
+        return self
+
     def trigger(self, event, *args, **kwargs):
         """Trigger handlers associated with a specific event.
 
@@ -32,3 +34,5 @@ class EventManager:
 
         for handler in handlers:
             handler(*args, **kwargs)
+
+        return self
