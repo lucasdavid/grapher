@@ -209,3 +209,13 @@ class GraphRelationshipRepository(GraphRepository, base.RelationshipRepository):
             next(relationships)
 
         return self._data_from_entities(relationships)
+
+    def where(self, skip=0, limit=None, **query):
+        if len(query) != 1:
+            raise ValueError('GraphRepository.where does not support multiple parameter filtering yet.')
+
+        query_item = query.popitem()
+        if query_item[0] == self.identity:
+            return self.find((query_item[1],))
+
+        raise NotImplementedError
