@@ -25,14 +25,14 @@ class SchematicResource(Resource):
 
     @property
     def repository(self):
-        self._repository = self._repository or self.repository_class(self.real_name(), self.schema, self)
+        self._repository = self._repository or self.repository_class(self.real_name(), self.schema)
         return self._repository
 
     _serializer = None
 
     @property
     def serializer(self):
-        self._serializer = self._serializer or self.serializer_class(self.real_name(), self.schema, self)
+        self._serializer = self._serializer or self.serializer_class(self.real_name(), self.schema)
         return self._serializer
 
     def _retrieve(self):
@@ -61,14 +61,13 @@ class SchematicResource(Resource):
     def _update(self, entries):
         entries, rejected = self.serializer.validate(entries)
 
-        self.trigger('before_update', entries=entries)
+        self.event_manager().trigger('before_update', entries=entries)
         entries = self.repository.update(entries)
-        self.trigger('after_update', entries=entries)
+        self.event_manager().trigger('after_update', entries=entries)
 
         entries, fields = self.serializer.project(entries)
 
         status = 207 if entries and rejected else 200 if entries else 400
-
         content = {}
         if entries:
             content['updated'] = entries
@@ -79,9 +78,9 @@ class SchematicResource(Resource):
 
     def get(self):
         try:
-            self.trigger('before_retrieve')
+            self.event_manager().trigger('before_retrieve')
             d = self._retrieve()
-            self.trigger('after_retrieve', entries=d)
+            self.event_manager().trigger('after_retrieve', entries=d)
 
             d, page = self.paginator.paginate(d)
             d, fields = self.serializer.project(d)
@@ -93,17 +92,16 @@ class SchematicResource(Resource):
 
     def post(self):
         try:
-            entries, _ = commons.CollectionHelper.transform(request.form)
+            entries, _ = commons.CollectionHelper.transform(request.get_json())
             entries, rejected = self.serializer.validate(entries)
 
-            self.trigger('before_create', entries=entries)
+            self.event_manager().trigger('before_create', entries=entries, rejected=rejected)
             entries = self.repository.create(entries)
-            self.trigger('after_create', entries=entries)
+            self.event_manager().trigger('after_create', entries=entries)
 
             entries, fields = self.serializer.project(entries)
 
             status = 207 if entries and rejected else 200 if entries else 400
-
             content = {}
             if entries:
                 content['created'] = entries
@@ -117,7 +115,7 @@ class SchematicResource(Resource):
 
     def put(self):
         try:
-            entries, _ = commons.CollectionHelper.transform(request.form)
+            entries, _ = commons.CollectionHelper.transform(request.get_json())
             # Makes sure every entry has an identity.
             self._identify(entries)
 
@@ -128,7 +126,7 @@ class SchematicResource(Resource):
 
     def patch(self):
         try:
-            r, _ = commons.CollectionHelper.transform(request.form)
+            r, _ = commons.CollectionHelper.transform(request.get_json())
 
             # We need all the entities' data to run meaningful validations.
             identities = self._identify(r)
@@ -151,7 +149,7 @@ class SchematicResource(Resource):
                 entries = self._retrieve()
             else:
                 # No query was passed. Search for identities in the body.
-                entries, _ = commons.CollectionHelper.transform(request.form)
+                entries, _ = commons.CollectionHelper.transform(request.get_json())
 
             if not entries:
                 raise errors.BadRequestError('DATA_CANNOT_BE_EMPTY')
@@ -159,11 +157,12 @@ class SchematicResource(Resource):
             identities = self._identify(entries)
             del entries
 
-            self.trigger('before_delete', identities=identities)
-            entries = self.repository.delete(identities)
-            self.trigger('after_delete', entries=entries)
+            self.event_manager().trigger('before_delete', identities=identities)
 
+            entries = self.repository.delete(identities)
             entries, fields = self.serializer.project(entries)
+
+            self.event_manager().trigger('after_delete', entries=entries)
 
             return self.response({'deleted': entries}, projection=fields, wrap=False)
 
@@ -252,23 +251,18 @@ class RelationshipResource(SchematicResource):
                 raise ValueError('Cardinality must be one of the following: %s. %s was given.' % (
                     str(commons.Cardinality.types), str(cls.cardinality)))
 
-            c = cls.cardinality.split('-')
-            c = c if len(c) > 1 else c + c
-
             # Injecting :_origin and :_target properties in schema.
             # They are fundamental as this is a relationship resource.
             identity = commons.SchemaNavigator.add_identity(cls.origin.schema)
             cls.schema['_origin'] = {
                 'required': True,
                 'type': cls.origin.schema[identity]['type'],
-                'cardinality': c[0]
             }
 
             identity = commons.SchemaNavigator.add_identity(cls.target.schema)
             cls.schema['_target'] = {
                 'required': True,
                 'type': cls.target.schema[identity]['type'],
-                'cardinality': c[1]
             }
 
     @classmethod
