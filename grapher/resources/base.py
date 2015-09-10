@@ -1,7 +1,6 @@
 import flask_restful
-from flask import request
 
-from .. import paginators, settings
+from .. import paginators, events, settings
 
 
 class Resource(flask_restful.Resource):
@@ -22,11 +21,29 @@ class Resource(flask_restful.Resource):
 
     @classmethod
     def initialize(cls):
-        cls.initialized = True
+        """Initialize resource.
+
+        Usually called when the resource is instantiated or during the construction of the documentation.
+        This initialize doesn't do much, but what really matters is its overriding.
+
+        IMPORTANT:
+            Overriding initializes must be careful not to initialize a resource more than once,
+            as it might cause unexpected behavior (e.g.: registration of a event handler more than once).
+            Check :Resource.initialized property before initializing.
+        """
+        if not cls.initialized:
+            cls.initialized = True
 
     @property
     def paginator(self):
         return paginators.Paginator
+
+    _event_manager = None
+
+    @classmethod
+    def event_manager(cls):
+        cls._event_manager = cls._event_manager or events.EventManager()
+        return cls._event_manager
 
     @classmethod
     def real_name(cls):
@@ -95,18 +112,6 @@ class Resource(flask_restful.Resource):
                         'content as a dictionary or set wrap to True.' % str(content))
 
         return result, status
-
-    def trigger(self, event, *args, **kwargs):
-        """Trigger a specific event, in case it has been defined.
-
-        :param event: the event to be triggered.
-        :param args: positional arguments passed to the event.
-        :param kwargs: key arguments passed to the event.
-        :return: the event's result, in case it has been defined.
-        """
-        if hasattr(self, event):
-            method = getattr(self, event)
-            return method(*args, **kwargs)
 
     def options(self):
         """Options HTTP method.

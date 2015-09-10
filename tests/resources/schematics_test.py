@@ -304,7 +304,14 @@ class EntityResourceEventsTest(TestCase):
 
     def test_after_retrieve(self):
         class User(test_resources.User):
-            def after_retrieve(self, entries):
+            @classmethod
+            def initialize(cls):
+                if not super().initialized:
+                    super().initialize()
+                    cls.event_manager().register('after_retrieve', cls.remove_two_entries)
+
+            @staticmethod
+            def remove_two_entries(entries):
                 for _ in range(2):
                     entries.pop()
 
