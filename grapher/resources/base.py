@@ -15,6 +15,9 @@ class Resource(flask_restful.Resource):
 
     initialized = False
 
+    def __init__(self):
+        self.initialize()
+
     @classmethod
     def initialize(cls):
         """Initialize resource.

@@ -14,18 +14,21 @@ f = Faker()
 
 class SchematicResourceTest(TestCase):
     def test_init(self):
-        r = SchematicResource()
+        class R(SchematicResource):
+            pass
 
-        self.assertIn('_id', r.schema)
-        self.assertIn('identity', r.schema['_id'])
-        self.assertTrue(r.schema['_id']['identity'])
+        R.initialize()
 
-        SchematicResource.schema = {'name': {'type': 'integer', 'identity': True}}
-        r = SchematicResource()
+        self.assertIn('_id', R.schema)
+        self.assertIn('identity', R.schema['_id'])
+        self.assertTrue(R.schema['_id']['identity'])
 
-        self.assertIn('name', r.schema)
-        self.assertIn('identity', r.schema['name'])
-        self.assertTrue(r.schema['name']['identity'])
+        R.schema = {'name': {'type': 'integer', 'identity': True}}
+        R.initialize()
+
+        self.assertIn('name', R.schema)
+        self.assertIn('identity', R.schema['name'])
+        self.assertTrue(R.schema['name']['identity'])
 
 
 class EntityResourceTest(TestCase):
@@ -209,7 +212,11 @@ class RelationshipResourceTest(TestCase):
         pass
 
     def test_init(self):
-        m = test_resources.Members()
+        class Members(test_resources.Members):
+            pass
+
+        Members.initialize()
+        m = Members()
 
         self.assertIsNotNone(m)
         self.assertIn('_id', m.schema)
@@ -221,6 +228,7 @@ class RelationshipResourceTest(TestCase):
             origin = 'Group'
             initialized = False
 
+        Members.initialize()
         m = Members()
 
         self.assertIsNotNone(m)
@@ -305,7 +313,7 @@ class EntityResourceEventsTest(TestCase):
         class User(test_resources.User):
             @classmethod
             def initialize(cls):
-                if not super().initialized:
+                if not cls.initialized:
                     super().initialize()
                     cls.event_manager().register('after_retrieve', cls.remove_two_entries)
 
@@ -314,6 +322,7 @@ class EntityResourceEventsTest(TestCase):
                 for _ in range(2):
                     entries.pop()
 
+        User.initialize()
         user = User()
         user._repository = Mock()
         user._repository.all = Mock(return_value=[{'test': 1} for _ in range(4)])
