@@ -45,7 +45,7 @@ class Settings:
             'description': 'The entity %s was not found in the database.',
         },
         'INVALID_QUERY': {
-            'description': 'Element {%s} of query {%s} is invalid.',
+            'description': 'The query is invalid: %s.',
         },
         'UNIDENTIFIABLE': {
             'description': 'This operation requires all instances to have an identity.',
