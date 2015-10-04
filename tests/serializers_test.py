@@ -78,13 +78,13 @@ class SerializerTest(TestCase):
             s.validate(None)
 
     @parameterized.expand([
-        ({}, [{'a': 1}], ([], {0: {'a': 'unknown field'}}))
+        ({}, [{'a': 1}], ({}, {0: {'a': 'unknown field'}}))
     ])
     def test_validate(self, schema, data, expected):
         s = serializers.Serializer('test', schema)
         accepted, declined = s.validate(data)
 
-        self.assertListEqual(accepted, expected[0])
+        self.assertDictEqual(accepted, expected[0])
         self.assertDictEqual(declined, expected[1])
 
 
