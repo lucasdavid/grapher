@@ -45,6 +45,11 @@ class Resource(flask_restful.Resource):
         return cls._event_manager
 
     @classmethod
+    def em(cls):
+        # Alias for Resource.event_manager()
+        return cls.event_manager()
+
+    @classmethod
     def real_name(cls):
         """Retrieve the resource's real name based on the overwritten property :name or the class name.
 
@@ -92,7 +97,7 @@ class Resource(flask_restful.Resource):
         result = {}
 
         if meta:
-            result['_meta'] = meta
+            result.update(meta)
 
         if content is not None:
             if wrap:
