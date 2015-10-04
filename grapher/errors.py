@@ -1,4 +1,4 @@
-from . import commons, settings
+from . import settings
 
 
 class GrapherError(RuntimeError):
@@ -30,7 +30,8 @@ class GrapherError(RuntimeError):
 
         else:
             for error in self.errors:
-                error, _ = commons.CollectionHelper.transform(error)
+                if not isinstance(error, (list, tuple)):
+                    error = [error]
 
                 code = error[0]
                 e = settings.effective.ERRORS[code].copy()
