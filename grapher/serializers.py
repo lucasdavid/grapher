@@ -35,13 +35,13 @@ class Serializer:
                 ('DATA_CANNOT_BE_EMPTY', (), ([{'hello': 'world'}],)),
             )
 
-        accepted, rejected = [], {}
+        accepted, rejected = {}, {}
 
         v = self.validator
 
         for i, e in enumerate(d):
             if v.validate(e):
-                accepted.append(e)
+                accepted[i] = e
             else:
                 rejected[i] = v.errors
 

@@ -1,8 +1,8 @@
 from unittest import TestCase
 from unittest.mock import Mock
-from faker import Faker
 
-from grapher import serializers, paginators, repositories, settings
+from faker import Faker
+from grapher import serializers, paginators, repositories, settings, commons
 from grapher.resources import SchematicResource, schematics
 from grapher.parsers import query
 from tests.examples import resources as test_resources
@@ -41,6 +41,7 @@ class EntityResourceTest(TestCase):
         request.get_json = Mock(return_value=[{'name': f.name(), 'age': f.random_int(20, 40)} for _ in range(4)])
 
         schematics.request = request
+        commons.request = request
         query.request = request
         paginators.request = request
         serializers.request = request
@@ -68,9 +69,8 @@ class EntityResourceTest(TestCase):
         response, status = user.get()
 
         self.assertEqual(status, 200, response)
-        self.assertIn('_meta', response)
-        self.assertIn('page', response['_meta'])
-        self.assertIn('projection', response['_meta'])
+        self.assertIn('page', response)
+        self.assertIn('fields', response)
 
         self.assertIn('content', response)
         self.assertEqual(len(response['content']), 4)
@@ -85,9 +85,8 @@ class EntityResourceTest(TestCase):
         response, status = user.get()
 
         self.assertEqual(status, 200, response)
-        self.assertIn('_meta', response)
-        self.assertIn('page', response['_meta'])
-        self.assertIn('projection', response['_meta'])
+        self.assertIn('page', response)
+        self.assertIn('fields', response)
         self.assertIn('content', response)
         self.assertEqual(len(response['content']), 2)
 
@@ -99,13 +98,12 @@ class EntityResourceTest(TestCase):
         response, status = user.post()
 
         self.assertEqual(status, 200)
-        self.assertIn('_meta', response)
-        self.assertIn('projection', response['_meta'])
+        self.assertIn('fields', response)
         self.assertIn('created', response)
         self.assertEqual(len(response['created']), len(self.data))
 
     def test_put(self):
-        schematics.request.get_json = Mock(return_value=self.entities_with_ids)
+        commons.request.get_json = schematics.request.get_json = Mock(return_value=self.entities_with_ids)
         user = test_resources.User()
         user._repository = Mock()
         user._repository.find = Mock(side_effect=lambda e: self.entities_with_ids)
@@ -114,13 +112,12 @@ class EntityResourceTest(TestCase):
         response, status = user.put()
 
         self.assertEqual(status, 200)
-        self.assertIn('_meta', response)
-        self.assertIn('projection', response['_meta'])
+        self.assertIn('fields', response)
         self.assertIn('updated', response)
         self.assertEqual(len(response['updated']), len(self.data))
 
     def test_patch(self):
-        schematics.request.get_json = Mock(return_value=self.entities_with_ids)
+        commons.request.get_json = schematics.request.get_json = Mock(return_value=self.entities_with_ids)
 
         user = test_resources.User()
         user._repository = Mock()
@@ -130,13 +127,12 @@ class EntityResourceTest(TestCase):
         response, status = user.patch()
 
         self.assertEqual(status, 200)
-        self.assertIn('_meta', response)
-        self.assertIn('projection', response['_meta'])
+        self.assertIn('fields', response)
         self.assertIn('updated', response)
         self.assertEqual(len(response['updated']), len(self.data))
 
     def test_patch_empty_data(self):
-        schematics.request.get_json = Mock(return_value=[])
+        commons.request.get_json = schematics.request.get_json = Mock(return_value=[])
 
         user = test_resources.User()
         user._repository = Mock()
@@ -146,9 +142,8 @@ class EntityResourceTest(TestCase):
         response, status = user.patch()
 
         self.assertEqual(status, 400)
-        self.assertIn('_meta', response)
-        self.assertIn('errors', response['_meta'])
-        self.assertIn('DATA_CANNOT_BE_EMPTY', response['_meta']['errors'])
+        self.assertIn('errors', response)
+        self.assertIn('DATA_CANNOT_BE_EMPTY', response['errors'])
 
     def test_patch_with_invalid_data(self):
         schematics.request.get_json = Mock(return_value=self.data)
@@ -161,9 +156,8 @@ class EntityResourceTest(TestCase):
         response, status = user.patch()
 
         self.assertEqual(status, 400)
-        self.assertIn('_meta', response)
-        self.assertIn('errors', response['_meta'])
-        self.assertIn('UNIDENTIFIABLE', response['_meta']['errors'])
+        self.assertIn('errors', response)
+        self.assertIn('UNIDENTIFIABLE', response['errors'])
 
     def test_delete_from_header(self):
         schematics.request.args.get.side_effect = lambda e: e == 'query' and '{"_id": -1}' or None
@@ -175,8 +169,7 @@ class EntityResourceTest(TestCase):
         response, status = user.delete()
 
         self.assertEqual(status, 200)
-        self.assertIn('_meta', response)
-        self.assertIn('projection', response['_meta'])
+        self.assertIn('fields', response)
         self.assertIn('deleted', response)
         self.assertEqual(len(response['deleted']), len(self.entities_with_ids))
 
@@ -189,8 +182,7 @@ class EntityResourceTest(TestCase):
         response, status = user.delete()
 
         self.assertEqual(status, 200)
-        self.assertIn('_meta', response)
-        self.assertIn('projection', response['_meta'])
+        self.assertIn('fields', response)
         self.assertIn('deleted', response)
         self.assertEqual(len(response['deleted']), len(self.entities_with_ids))
 
@@ -202,9 +194,8 @@ class EntityResourceTest(TestCase):
         response, status = user.delete()
 
         self.assertEqual(status, 400)
-        self.assertIn('_meta', response)
-        self.assertIn('errors', response['_meta'])
-        self.assertIn('DATA_CANNOT_BE_EMPTY', response['_meta']['errors'])
+        self.assertIn('errors', response)
+        self.assertIn('DATA_CANNOT_BE_EMPTY', response['errors'])
 
 
 class RelationshipResourceTest(TestCase):
@@ -330,9 +321,8 @@ class EntityResourceEventsTest(TestCase):
         response, status = user.get()
 
         self.assertEqual(status, 200, response)
-        self.assertIn('_meta', response)
-        self.assertIn('page', response['_meta'])
-        self.assertIn('projection', response['_meta'])
+        self.assertIn('page', response)
+        self.assertIn('fields', response)
 
         self.assertIn('content', response)
         self.assertEqual(len(response['content']), 2)

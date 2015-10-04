@@ -1,8 +1,10 @@
 import importlib
+
 from flask_restful import request
 
 from .base import Resource
 from .. import repositories, serializers, parsers, commons, settings, errors
+from ..commons import CollectionHelper, RequestHelper
 
 
 class SchematicResource(Resource):
@@ -35,7 +37,7 @@ class SchematicResource(Resource):
         self._serializer = self._serializer or self.serializer_class(self.real_name(), self.schema)
         return self._serializer
 
-    def _retrieve(self):
+    def _retrieve_queried(self):
         skip = request.args.get('skip') or 0
         if isinstance(skip, str):
             skip = int(skip)
@@ -46,8 +48,7 @@ class SchematicResource(Resource):
 
         query = parsers.RequestQueryParser.query_as_object()
 
-        return query and self.repository.where(skip=skip, limit=limit, **query) \
-               or self.repository.all(skip, limit)
+        return query and self.repository.where(skip=skip, limit=limit, **query) or self.repository.all(skip, limit)
 
     def _identify(self, entries):
         identity = commons.SchemaNavigator.identity_from(self.schema)
@@ -61,11 +62,15 @@ class SchematicResource(Resource):
     def _update(self, entries):
         entries, rejected = self.serializer.validate(entries)
 
-        self.event_manager().trigger('before_update', entries=entries)
-        entries = self.repository.update(entries)
-        self.event_manager().trigger('after_update', entries=entries)
+        self.em().trigger('before_update', entries=entries, rejected=rejected)
 
-        entries, fields = self.serializer.project(entries)
+        entries_values = self.repository.update(entries.values())
+        entries = CollectionHelper.zip(entries.keys(), entries_values)
+
+        self.em().trigger('after_update', entries=entries, rejected=rejected)
+
+        entries_values, fields = self.serializer.project(entries.values())
+        entries = CollectionHelper.zip(entries.keys(), entries_values)
 
         status = 207 if entries and rejected else 200 if entries else 400
         content = {}
@@ -74,32 +79,38 @@ class SchematicResource(Resource):
         if rejected:
             content['failed'] = rejected
 
-        return self.response(content, status=status, wrap=False, projection=fields)
+        return self.response(content, status=status, wrap=False, fields=fields)
 
     def get(self):
         try:
-            self.event_manager().trigger('before_retrieve')
-            d = self._retrieve()
-            self.event_manager().trigger('after_retrieve', entries=d)
+            self.em().trigger('before_retrieve')
+
+            d = self._retrieve_queried()
+
+            self.em().trigger('after_retrieve', entries=d)
 
             d, page = self.paginator.paginate(d)
             d, fields = self.serializer.project(d)
 
-            return self.response(d, projection=fields, page=page)
+            return self.response(d, fields=fields, page=page)
 
         except errors.GrapherError as e:
             return self.response(status=e.status_code, errors=e.as_api_response(), wrap=False)
 
     def post(self):
         try:
-            entries, _ = commons.CollectionHelper.transform(request.get_json())
+            entries = RequestHelper.get_data_or_raise()
             entries, rejected = self.serializer.validate(entries)
 
-            self.event_manager().trigger('before_create', entries=entries, rejected=rejected)
-            entries = self.repository.create(entries)
-            self.event_manager().trigger('after_create', entries=entries)
+            self.em().trigger('before_create', entries=entries, rejected=rejected)
 
-            entries, fields = self.serializer.project(entries)
+            entries_values = self.repository.create(entries.values())
+            entries = CollectionHelper.zip(entries.keys(), entries_values)
+
+            self.em().trigger('after_create', entries=entries, rejected=rejected)
+
+            entries_values, fields = self.serializer.project(entries.values())
+            entries = CollectionHelper.zip(entries.keys(), entries_values)
 
             status = 207 if entries and rejected else 200 if entries else 400
             content = {}
@@ -108,14 +119,14 @@ class SchematicResource(Resource):
             if rejected:
                 content['failed'] = rejected
 
-            return self.response(content, status=status, wrap=False, projection=fields)
+            return self.response(content, status=status, wrap=False, fields=fields)
 
         except errors.GrapherError as e:
             return self.response(status=e.status_code, errors=e.as_api_response(), wrap=False)
 
     def put(self):
         try:
-            entries, _ = commons.CollectionHelper.transform(request.get_json())
+            entries, _ = CollectionHelper.transform(request.get_json())
             # Makes sure every entry has an identity.
             self._identify(entries)
 
@@ -126,7 +137,7 @@ class SchematicResource(Resource):
 
     def patch(self):
         try:
-            r, _ = commons.CollectionHelper.transform(request.get_json())
+            r = RequestHelper.get_data_or_raise()
 
             # We need all the entities' data to run meaningful validations.
             identities = self._identify(r)
@@ -146,10 +157,10 @@ class SchematicResource(Resource):
         try:
             if parsers.RequestQueryParser.query():
                 # Parse query from request. These entities will be deleted.
-                entries = self._retrieve()
+                entries = self._retrieve_queried()
             else:
                 # No query was passed. Search for identities in the body.
-                entries, _ = commons.CollectionHelper.transform(request.get_json())
+                entries, _ = CollectionHelper.transform(request.get_json())
 
             if not entries:
                 raise errors.BadRequestError('DATA_CANNOT_BE_EMPTY')
@@ -157,14 +168,14 @@ class SchematicResource(Resource):
             identities = self._identify(entries)
             del entries
 
-            self.event_manager().trigger('before_delete', identities=identities)
+            self.em().trigger('before_delete', identities=identities)
 
             entries = self.repository.delete(identities)
             entries, fields = self.serializer.project(entries)
 
-            self.event_manager().trigger('after_delete', entries=entries)
+            self.em().trigger('after_delete', entries=entries)
 
-            return self.response({'deleted': entries}, projection=fields, wrap=False)
+            return self.response({'deleted': entries}, fields=fields, wrap=False)
 
         except errors.GrapherError as e:
             return self.response(status=e.status_code, errors=e.as_api_response())
@@ -266,6 +277,9 @@ class RelationshipResource(SchematicResource):
                 'type': cls.target.schema[identity]['type'],
             }
 
+            cls.em().register('before_create', cls.validate_cardinality_on_create)
+            cls.em().register('before_update', cls.validate_cardinality_on_update)
+
     @classmethod
     def describe(cls):
         description = super().describe()
@@ -279,3 +293,12 @@ class RelationshipResource(SchematicResource):
         )
 
         return description
+
+    @staticmethod
+    def validate_cardinality_on_create(entries, rejected):
+        pass
+
+
+    @staticmethod
+    def validate_cardinality_on_update(entries, rejected):
+        pass

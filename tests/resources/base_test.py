@@ -33,7 +33,7 @@ class ResourceTest(TestCase):
         ([], 200, True, {}, {'content': []}),
         ([1, 2, 3], 200, True, {}, {'content': [1, 2, 3]}),
         ([1, 2, 3], 200, False, {}, [1, 2, 3]),
-        ([1, 2, 3], 200, True, {'count': 3}, {'content': [1, 2, 3], '_meta': {'count': 3}}),
+        ([1, 2, 3], 200, True, {'count': 3}, {'content': [1, 2, 3], 'count': 3}),
         ({'test': 1}, 200, False, {}, {'test': 1}),
         ({'test': 1}, 404, True, {}, {'content': {'test': 1}}),
     ])
