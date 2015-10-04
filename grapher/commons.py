@@ -1,5 +1,9 @@
 import abc
+
 from cerberus import SchemaError
+
+from flask_restful import request
+from grapher import errors
 
 
 class CollectionHelper(metaclass=abc.ABCMeta):
@@ -12,11 +16,13 @@ class CollectionHelper(metaclass=abc.ABCMeta):
 
         Fundamentally, lists, tuples, sets and objects that have a member '__iter__' don't need transformation,
         except for dictionaries and objects of their subclasses.
+        None are not converted.
 
         :param item: the unknown structure.
         :return: :boolean:
         """
-        return not isinstance(item, (list, tuple, set)) and \
+        return item is not None and \
+               not isinstance(item, (list, tuple, set)) and \
                not hasattr(item, '__iter__') or isinstance(item, dict) or issubclass(item.__class__, dict) or \
                isinstance(item, str)
 
@@ -52,6 +58,10 @@ class CollectionHelper(metaclass=abc.ABCMeta):
         item = [e for _, e in item.items()]
 
         return cls.restore(item, previously_transformed)
+
+    @classmethod
+    def zip(cls, keys, values):
+        return dict(zip(keys, values))
 
 
 class SchemaNavigator(metaclass=abc.ABCMeta):
@@ -160,3 +170,14 @@ class WordHelper(metaclass=abc.ABCMeta):
             suffix = 's'
         plural = root + suffix
         return plural
+
+
+class RequestHelper(metaclass=abc.ABCMeta):
+    @classmethod
+    def get_data_or_raise(cls):
+        d = request.get_json()
+        if not d:
+            raise errors.BadRequestError('DATA_CANNOT_BE_EMPTY')
+
+        d, _ = CollectionHelper.transform(d)
+        return d
