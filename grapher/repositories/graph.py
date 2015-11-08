@@ -8,13 +8,14 @@ from .. import errors, settings
 
 class GraphRepository(metaclass=abc.ABCMeta):
     _g = None
+    connection_string = settings.effective.DATABASES['neo4j']
 
     @property
     def g(self):
         self._g = self._g or Graph('http://%s:%s@%s' % (
-            settings.effective.DATABASES['default']['username'],
-            settings.effective.DATABASES['default']['password'],
-            settings.effective.DATABASES['default']['uri'],
+            self.connection_string['username'],
+            self.connection_string['password'],
+            self.connection_string['uri'],
         ))
 
         return self._g

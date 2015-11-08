@@ -7,6 +7,8 @@ class Repository(metaclass=abc.ABCMeta):
 
     Extended by :EntityRepository and :RelationshipRepository.
     """
+    connection_string = None
+
     def __init__(self, label, schema):
         """Construct a repository of a :label, constrained by a :schema.
 

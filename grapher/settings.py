@@ -61,10 +61,15 @@ class Development(Settings):
     TESTING = True
 
     DATABASES = {
-        'default': {
+        'neo4j': {
             'uri': '127.0.0.1:7474/db/data/',
             'username': 'neo4j',
-            'password': 'root',
+            'password': 'root'
+        },
+        'mongodb': {
+            'name': 'default',
+            'host': 'localhost',
+            'port': 27017,
         }
     }
 
