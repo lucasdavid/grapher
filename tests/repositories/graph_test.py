@@ -5,7 +5,7 @@ import py2neo
 from faker import Faker
 from nose_parameterized import parameterized
 from grapher import errors
-from grapher.repositories import GraphEntityRepository, GraphRelationshipRepository
+from grapher.repositories.graph import GraphEntityRepository, GraphRelationshipRepository
 
 f = Faker()
 

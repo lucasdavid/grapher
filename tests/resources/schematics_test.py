@@ -2,8 +2,9 @@ from unittest import TestCase
 from unittest.mock import Mock
 
 from faker import Faker
-from grapher import serializers, paginators, repositories, settings, commons
+from grapher import serializers, paginators, settings, commons
 from grapher.resources import SchematicResource, schematics
+from grapher.repositories.graph import GraphEntityRepository
 from grapher.parsers import query
 from tests.examples import resources as test_resources
 
@@ -240,7 +241,7 @@ class RelationshipResourceTest(TestCase):
 
     def test_init_fail_with_entity_repository(self):
         class Members(test_resources.Members):
-            repository_class = repositories.GraphEntityRepository
+            repository_class = GraphEntityRepository
             initialized = False
 
         with self.assertRaises(AssertionError):

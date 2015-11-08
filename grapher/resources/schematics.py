@@ -4,6 +4,7 @@ from flask_restful import request
 
 from .base import Resource
 from .. import repositories, serializers, parsers, commons, settings, errors
+from ..repositories import graph
 from ..commons import CollectionHelper, RequestHelper
 
 
@@ -48,7 +49,7 @@ class SchematicResource(Resource):
 
         query = parsers.RequestQueryParser.query_as_object()
 
-        return query and self.repository.where(skip=skip, limit=limit, **query) or self.repository.all(skip, limit)
+        return self.repository.where(skip=skip, limit=limit, **query) if query else self.repository.all(skip, limit)
 
     def _identify(self, entries):
         identity = commons.SchemaNavigator.identity_from(self.schema)
@@ -190,7 +191,7 @@ class SchematicResource(Resource):
 
 class EntityResource(SchematicResource):
     pluralize = settings.effective.PLURALIZE_ENTITIES_NAMES
-    repository_class = repositories.GraphEntityRepository
+    repository_class = graph.GraphEntityRepository
 
     @classmethod
     def initialize(cls):
@@ -225,7 +226,7 @@ class RelationshipResource(SchematicResource):
     origin = target = None
     cardinality = commons.Cardinality.many
 
-    repository_class = repositories.GraphRelationshipRepository
+    repository_class = graph.GraphRelationshipRepository
 
     @classmethod
     def initialize(cls):
