@@ -3,7 +3,9 @@ import importlib
 from flask_restful import request
 
 from .base import Resource
-from .. import managers, repositories, serializers, parsers, commons, settings, errors, guardians
+from .. import managers
+from ..managers import guardians
+from .. import repositories, serializers, parsers, commons, settings, errors
 from ..repositories import graph
 from ..commons import CollectionHelper, RequestHelper
 
@@ -44,15 +46,6 @@ class SchematicResource(Resource):
     def guardian(self):
         self._guardian = self._guardian or guardians.Guardian(self.real_name())
         return self._guardian
-
-    def _identify(self, entries):
-        identity = commons.SchemaNavigator.identity_from(self.schema)
-
-        try:
-            return [e[identity] for e in entries]
-
-        except KeyError:
-            raise errors.BadRequestError('UNIDENTIFIABLE')
 
     def get(self):
         try:
@@ -106,11 +99,9 @@ class SchematicResource(Resource):
             self.guardian.check_permissions()
 
             entries = DataParser.parse_or_raise()
+            entries, unidentifiables = self._identify(entries)
 
-            # Makes sure every entry has an identity.
-            self._identify(entries)
-
-            return self._update(entries)
+            return self._update(entries.values())
 
         except errors.GrapherError as e:
             return self.response(status=e.status_code, errors=e.as_api_response(), wrap=False)
@@ -119,23 +110,35 @@ class SchematicResource(Resource):
         try:
             self.guardian.check_permissions()
 
-            r = RequestHelper.get_data_or_raise()
+            r = parsers.DataParser.parse_or_raise()
+            identifiables, unidentifiables = self._identify(r)
 
-            # We need all the entities' data to run meaningful validations.
-            identities = self._identify(r)
-            entries = self.manager.find(identities)
+            identity = commons.SchemaNavigator.identity_from(self.schema)
+            entries = self.manager.find([entity[identity] for entity in identifiables.values()])
 
             # Patches the request data onto the database data.
-            for i in range(len(r)):
-                entries[i].update(r[i])
+            for i, data in identifiables.items():
+                entries[i].update(data)
             del r
 
-            return self._update(entries)
+            return self._update(entries, unidentifiables)
 
         except errors.GrapherError as e:
             return self.response(status=e.status_code, errors=e.as_api_response())
 
-    def _update(self, entries):
+    def _identify(self, entities):
+        identity = commons.SchemaNavigator.identity_from(self.schema)
+        identifiables, unidentifiables = {}, {}
+
+        for i, entity in enumerate(entities):
+            if identity in entity:
+                identifiables[i] = entity
+            else:
+                unidentifiables[i] = entity
+
+        return identifiables, unidentifiables
+
+    def _update(self, entries, unidentifiables=None):
         entries, rejected = self.serializer.validate(entries)
 
         self.em().trigger('before_update', entries=entries, rejected=rejected)
@@ -154,6 +157,8 @@ class SchematicResource(Resource):
             content['updated'] = entries
         if rejected:
             content['failed'] = rejected
+        if unidentifiables:
+            content['unidentifiables'] = unidentifiables
 
         return self.response(content, status=status, wrap=False, fields=fields)
 
@@ -161,7 +166,7 @@ class SchematicResource(Resource):
         try:
             self.guardian.check_permissions()
 
-            self.em().trigger('before_delete', identities=identities)
+            self.em().trigger('before_delete', identifiables=identifiables)
 
             query = parsers.QueryParser.parse_or_raise()
             entries = self.manager.query(**query);

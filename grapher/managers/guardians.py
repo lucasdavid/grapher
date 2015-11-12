@@ -1,9 +1,10 @@
 from flask_restful import request
 
-from . import managers, settings
+from .. import settings
+from .base import Manager
 
 
-class Guardian(managers.Manager):
+class Guardian(Manager):
     def __init__(self, name, schema, repository_class):
         super().__init__(name, schema, repository_class)
 
