@@ -1,13 +1,10 @@
 import importlib
-
-from flask_restful import request
-
 from .base import Resource
 from .. import managers
 from ..managers import guardians
 from .. import repositories, serializers, parsers, commons, settings, errors
 from ..repositories import graph
-from ..commons import CollectionHelper, RequestHelper
+from ..commons import CollectionHelper
 
 
 class SchematicResource(Resource):
@@ -61,7 +58,7 @@ class SchematicResource(Resource):
             entries, page = self.paginator.paginate(entries)
             entries, fields = self.serializer.project(entries)
 
-            return self.response(d, fields=fields, page=page)
+            return self.response(entries, fields=fields, page=page)
 
         except errors.GrapherError as e:
             return self.response(status=e.status_code, errors=e.as_api_response(), wrap=False)
@@ -98,7 +95,7 @@ class SchematicResource(Resource):
         try:
             self.guardian.check_permissions()
 
-            entries = DataParser.parse_or_raise()
+            entries = parsers.DataParser.parse_or_raise()
             entries, unidentifiables = self._identify(entries)
 
             return self._update(entries.values())
@@ -166,10 +163,11 @@ class SchematicResource(Resource):
         try:
             self.guardian.check_permissions()
 
-            self.em().trigger('before_delete', identifiables=identifiables)
-
             query = parsers.QueryParser.parse_or_raise()
-            entries = self.manager.query(**query);
+            entries = self.manager.query(**query)
+
+            self.em().trigger('before_delete', entries=entries)
+
             entries, failed = self.manager.delete([e[self.identity] for e in entries])
             entries, fields = self.serializer.project(entries)
 
