@@ -54,38 +54,19 @@ class SchematicResource(Resource):
         except KeyError:
             raise errors.BadRequestError('UNIDENTIFIABLE')
 
-    def _update(self, entries):
-        entries, rejected = self.serializer.validate(entries)
-
-        self.em().trigger('before_update', entries=entries, rejected=rejected)
-
-        entries_values = self.repository.update(entries.values())
-        entries = CollectionHelper.zip(entries.keys(), entries_values)
-
-        self.em().trigger('after_update', entries=entries, rejected=rejected)
-
-        entries_values, fields = self.serializer.project(entries.values())
-        entries = CollectionHelper.zip(entries.keys(), entries_values)
-
-        status = 207 if entries and rejected else 200 if entries else 400
-        content = {}
-        if entries:
-            content['updated'] = entries
-        if rejected:
-            content['failed'] = rejected
-
-        return self.response(content, status=status, wrap=False, fields=fields)
-
     def get(self):
         try:
             self.guardian.check_permissions()
 
             self.em().trigger('before_retrieve')
-            d = self.manager.query()
-            self.em().trigger('after_retrieve', entries=d)
 
-            d, page = self.paginator.paginate(d)
-            d, fields = self.serializer.project(d)
+            query = parsers.QueryParser.parse()
+            entries = self.manager.query_or_all(**query)
+
+            self.em().trigger('after_retrieve', entries=entries)
+
+            entries, page = self.paginator.paginate(entries)
+            entries, fields = self.serializer.project(entries)
 
             return self.response(d, fields=fields, page=page)
 
@@ -96,7 +77,7 @@ class SchematicResource(Resource):
         try:
             self.guardian.check_permissions()
 
-            entries = RequestHelper.get_data_or_raise()
+            entries = parsers.DataParser.parse_or_raise()
             entries, rejected = self.serializer.validate(entries)
 
             self.em().trigger('before_create', entries=entries, rejected=rejected)
@@ -124,7 +105,8 @@ class SchematicResource(Resource):
         try:
             self.guardian.check_permissions()
 
-            entries, _ = CollectionHelper.transform(request.get_json())
+            entries = DataParser.parse_or_raise()
+
             # Makes sure every entry has an identity.
             self._identify(entries)
 
@@ -153,35 +135,37 @@ class SchematicResource(Resource):
         except errors.GrapherError as e:
             return self.response(status=e.status_code, errors=e.as_api_response())
 
+    def _update(self, entries):
+        entries, rejected = self.serializer.validate(entries)
+
+        self.em().trigger('before_update', entries=entries, rejected=rejected)
+
+        entries_values = self.repository.update(entries.values())
+        entries = CollectionHelper.zip(entries.keys(), entries_values)
+
+        self.em().trigger('after_update', entries=entries, rejected=rejected)
+
+        entries_values, fields = self.serializer.project(entries.values())
+        entries = CollectionHelper.zip(entries.keys(), entries_values)
+
+        status = 207 if entries and rejected else 200 if entries else 400
+        content = {}
+        if entries:
+            content['updated'] = entries
+        if rejected:
+            content['failed'] = rejected
+
+        return self.response(content, status=status, wrap=False, fields=fields)
+
     def delete(self):
         try:
             self.guardian.check_permissions()
 
-            if parsers.RequestQueryParser.query():
-                # Parse query from request. These entities will be deleted.
-                skip = request.args.get('skip') or 0
-                if isinstance(skip, str):
-                    skip = int(skip)
-
-                limit = request.args.get('limit') or None
-                if isinstance(limit, str):
-                    limit = int(limit)
-
-                query = parsers.RequestQueryParser.query_as_object()
-                entries = self.manager.query(query, skip, limit)
-
-            else:
-                # No query was passed. Search for identities in the body.
-                entries, _ = CollectionHelper.transform(request.get_json())
-
-            if not entries:
-                raise errors.BadRequestError('DATA_CANNOT_BE_EMPTY')
-
-            identities = self._identify(entries)
-            del entries
-
             self.em().trigger('before_delete', identities=identities)
-            entries = self.manager.delete(identities)
+
+            query = parsers.QueryParser.parse_or_raise()
+            entries = self.manager.query(**query);
+            entries, failed = self.manager.delete([e[self.identity] for e in entries])
             entries, fields = self.serializer.project(entries)
 
             self.em().trigger('after_delete', entries=entries)
