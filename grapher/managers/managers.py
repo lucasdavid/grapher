@@ -1,5 +1,5 @@
 from flask_restful import request
-from grapher import parsers
+from .. import parsers
 
 
 class Manager:
@@ -18,22 +18,14 @@ class Manager:
     def all(self, skip=0, limit=None):
         return self.repository.all(skip=skip, limit=limit)
 
-    def find(self, entities):
-        return self.repository.find(entities)
+    def find(self, identities):
+        return self.repository.find(identities)
 
     def query(self, query, skip=0, limit=None):
         return self.repository.where(skip=skip, limit=limit, **query)
 
-    def query(self):
-        skip = request.args.get('skip')
-        skip = int(skip) if isinstance(skip, str) else 0
-
-        limit = request.args.get('limit')
-        limit = int(limit) if isinstance(limit, str) else None
-
-        query = parsers.RequestQueryParser.query_as_object()
-
-        return self.repository.where(skip=skip, limit=limit, **query) if query else self.all()
+    def query_or_all(self, query, skip=0, limit=None):
+        return self.query(query, skip, limit) if query else self.all(skip, limit)
 
     def create(self, entities):
         return self.repository.create(entities)
