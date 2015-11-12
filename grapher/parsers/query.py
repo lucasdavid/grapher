@@ -23,11 +23,8 @@ class RequestQueryParser(metaclass=abc.ABCMeta):
 
     @classmethod
     def query(cls):
-        return request.args.get(cls.request_query_keyword) or ''
+        query = request.args.get(cls.request_query_keyword)
 
-    @classmethod
-    def query_as_object(cls):
-        query = cls.query()
         if query:
             try:
                 query = json.loads(query)
@@ -37,3 +34,24 @@ class RequestQueryParser(metaclass=abc.ABCMeta):
             cls._validate_query(query)
 
         return query or {}
+
+    @classmethod
+    def full_query(cls):
+        query = parsers.RequestQueryParser.query_as_object()
+
+        skip = request.args.get('skip')
+        skip = int(skip) if isinstance(skip, str) else 0
+
+        limit = request.args.get('limit')
+        limit = int(limit) if isinstance(limit, str) else None
+
+        return {'query': query, 'skip': skip, 'limit': limit}
+
+    @classmethod
+    def full_query_or_raise(cls):
+        query = cls.full_query();
+
+        if not query:
+            raise errors.BadRequestError('MISSING_QUERY')
+
+        return query
