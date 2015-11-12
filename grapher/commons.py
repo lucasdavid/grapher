@@ -2,7 +2,6 @@ import abc
 
 from cerberus import SchemaError
 
-from flask_restful import request
 from grapher import errors
 
 
@@ -170,14 +169,3 @@ class WordHelper(metaclass=abc.ABCMeta):
             suffix = 's'
         plural = root + suffix
         return plural
-
-
-class RequestHelper(metaclass=abc.ABCMeta):
-    @classmethod
-    def get_data_or_raise(cls):
-        d = request.get_json()
-        if not d:
-            raise errors.BadRequestError('DATA_CANNOT_BE_EMPTY')
-
-        d, _ = CollectionHelper.transform(d)
-        return d
