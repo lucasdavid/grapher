@@ -62,6 +62,9 @@ class Settings:
         'INVALID_QUERY': {
             'description': 'The query is invalid: %s.',
         },
+        'MISSING_QUERY': {
+            'description': 'This opperation requires a query, which was not provided.',
+        },
         'UNIDENTIFIABLE': {
             'description': 'This operation requires all instances to have an identity.',
         },
