@@ -18,7 +18,22 @@ class Settings:
     # Additionally, pluralization will NOT happen if the user has set :EntityResource.name.
     PLURALIZE_ENTITIES_NAMES = True
 
-    DATABASES = {}
+    DATABASES = {
+        'neo4j': {
+            'uri': '127.0.0.1:7474/db/data/',
+            'username': 'neo4j',
+            'password': 'root'
+        },
+        'mongodb': {
+            'name': 'default',
+            'host': 'localhost',
+            'port': 27017,
+        }
+    }
+
+    SECURITY = {
+        'database': 'mongodb'
+    }
 
     # Flags if partial recoveries should be attempted.
     # For instance, a list of entities to be created, where a single entity is not valid:
@@ -59,19 +74,6 @@ class Settings:
 class Development(Settings):
     DEBUG = True
     TESTING = True
-
-    DATABASES = {
-        'neo4j': {
-            'uri': '127.0.0.1:7474/db/data/',
-            'username': 'neo4j',
-            'password': 'root'
-        },
-        'mongodb': {
-            'name': 'default',
-            'host': 'localhost',
-            'port': 27017,
-        }
-    }
 
 
 class Production(Settings):

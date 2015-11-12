@@ -3,7 +3,7 @@ import importlib
 from flask_restful import request
 
 from .base import Resource
-from .. import repositories, serializers, parsers, commons, settings, errors
+from .. import managers, repositories, serializers, parsers, commons, settings, errors, guardians
 from ..repositories import graph
 from ..commons import CollectionHelper, RequestHelper
 
@@ -11,8 +11,14 @@ from ..commons import CollectionHelper, RequestHelper
 class SchematicResource(Resource):
     schema = {}
 
+    manager_class = managers.Manager
     repository_class = repositories.base.Repository
     serializer_class = serializers.DynamicSerializer
+    guardian_class = guardians.Guardian
+
+    _manager = None
+    _serializer = None
+    _guardian = None
 
     @classmethod
     def initialize(cls):
@@ -24,32 +30,20 @@ class SchematicResource(Resource):
 
             commons.SchemaNavigator.add_identity(cls.schema)
 
-    _repository = None
-
     @property
-    def repository(self):
-        self._repository = self._repository or self.repository_class(self.real_name(), self.schema)
-        return self._repository
-
-    _serializer = None
+    def manager(self):
+        self._manager = self._manager or self.manager_class(self.real_name(), self.schema, self.repository_class)
+        return self._manager
 
     @property
     def serializer(self):
         self._serializer = self._serializer or self.serializer_class(self.real_name(), self.schema)
         return self._serializer
 
-    def _retrieve_queried(self):
-        skip = request.args.get('skip') or 0
-        if isinstance(skip, str):
-            skip = int(skip)
-
-        limit = request.args.get('limit') or None
-        if isinstance(limit, str):
-            limit = int(limit)
-
-        query = parsers.RequestQueryParser.query_as_object()
-
-        return self.repository.where(skip=skip, limit=limit, **query) if query else self.repository.all(skip, limit)
+    @property
+    def guardian(self):
+        self._guardian = self._guardian or guardians.Guardian(self.real_name())
+        return self._guardian
 
     def _identify(self, entries):
         identity = commons.SchemaNavigator.identity_from(self.schema)
@@ -84,10 +78,10 @@ class SchematicResource(Resource):
 
     def get(self):
         try:
+            self.guardian.check_permissions()
+
             self.em().trigger('before_retrieve')
-
-            d = self._retrieve_queried()
-
+            d = self.manager.query()
             self.em().trigger('after_retrieve', entries=d)
 
             d, page = self.paginator.paginate(d)
@@ -100,12 +94,13 @@ class SchematicResource(Resource):
 
     def post(self):
         try:
+            self.guardian.check_permissions()
+
             entries = RequestHelper.get_data_or_raise()
             entries, rejected = self.serializer.validate(entries)
 
             self.em().trigger('before_create', entries=entries, rejected=rejected)
-
-            entries_values = self.repository.create(entries.values())
+            entries_values = self.manager.create(entries.values())
             entries = CollectionHelper.zip(entries.keys(), entries_values)
 
             self.em().trigger('after_create', entries=entries, rejected=rejected)
@@ -127,6 +122,8 @@ class SchematicResource(Resource):
 
     def put(self):
         try:
+            self.guardian.check_permissions()
+
             entries, _ = CollectionHelper.transform(request.get_json())
             # Makes sure every entry has an identity.
             self._identify(entries)
@@ -138,11 +135,13 @@ class SchematicResource(Resource):
 
     def patch(self):
         try:
+            self.guardian.check_permissions()
+
             r = RequestHelper.get_data_or_raise()
 
             # We need all the entities' data to run meaningful validations.
             identities = self._identify(r)
-            entries = self.repository.find(identities)
+            entries = self.manager.find(identities)
 
             # Patches the request data onto the database data.
             for i in range(len(r)):
@@ -156,9 +155,21 @@ class SchematicResource(Resource):
 
     def delete(self):
         try:
+            self.guardian.check_permissions()
+
             if parsers.RequestQueryParser.query():
                 # Parse query from request. These entities will be deleted.
-                entries = self._retrieve_queried()
+                skip = request.args.get('skip') or 0
+                if isinstance(skip, str):
+                    skip = int(skip)
+
+                limit = request.args.get('limit') or None
+                if isinstance(limit, str):
+                    limit = int(limit)
+
+                query = parsers.RequestQueryParser.query_as_object()
+                entries = self.manager.query(query, skip, limit)
+
             else:
                 # No query was passed. Search for identities in the body.
                 entries, _ = CollectionHelper.transform(request.get_json())
@@ -170,8 +181,7 @@ class SchematicResource(Resource):
             del entries
 
             self.em().trigger('before_delete', identities=identities)
-
-            entries = self.repository.delete(identities)
+            entries = self.manager.delete(identities)
             entries, fields = self.serializer.project(entries)
 
             self.em().trigger('after_delete', entries=entries)
@@ -278,9 +288,6 @@ class RelationshipResource(SchematicResource):
                 'type': cls.target.schema[identity]['type'],
             }
 
-            cls.em().register('before_create', cls.validate_cardinality_on_create)
-            cls.em().register('before_update', cls.validate_cardinality_on_update)
-
     @classmethod
     def describe(cls):
         description = super().describe()
@@ -294,12 +301,3 @@ class RelationshipResource(SchematicResource):
         )
 
         return description
-
-    @staticmethod
-    def validate_cardinality_on_create(entries, rejected):
-        pass
-
-
-    @staticmethod
-    def validate_cardinality_on_update(entries, rejected):
-        pass
