@@ -1,12 +1,12 @@
 from unittest import TestCase
 from unittest.mock import Mock
+
+from grapher.parsers import QueryParser
+from grapher.parsers import query
 from nose_parameterized import parameterized
 
-from grapher import errors
-from grapher.parsers import query, RequestQueryParser
 
-
-class RequestQueryParserTest(TestCase):
+class QueryParserTest(TestCase):
     def setUp(self):
         r = Mock()
         r.args = Mock()
@@ -14,34 +14,12 @@ class RequestQueryParserTest(TestCase):
         query.request = r
 
     @parameterized.expand([
-        (None, ''),
-        ('', ''),
-        ('{"test":"test 1"}', '{"test":"test 1"}'),
+        (None, {'query': {}, 'skip': 0, 'limit': None}),
+        ('{"test":"test 1"}', {'query': {'test': 'test 1'}, 'skip': 0, 'limit': None}),
     ])
-    def test_query(self, request_query, expected):
+    def test_parse(self, request_query, expected):
         query.request.args.get.return_value = request_query
 
-        actual = RequestQueryParser.query()
+        actual = QueryParser.parse()
 
         self.assertEqual(actual, expected)
-
-    @parameterized.expand([
-        (None, {}),
-        ('{"name":"Test"}', {"name": "Test"}),
-    ])
-    def test_query_as_object(self, request_query, expected):
-        query.request.args.get.return_value = request_query
-
-        actual = RequestQueryParser.query_as_object()
-
-        self.assertDictEqual(actual, expected)
-
-    @parameterized.expand([
-        ('{}{}{}',),
-        ('{"$xor":{}}',),
-    ])
-    def test_query_as_object_raise_graph_error(self, request_query):
-        query.request.args.get.return_value = request_query
-
-        with self.assertRaises(errors.BadRequestError):
-            RequestQueryParser.query_as_object()
