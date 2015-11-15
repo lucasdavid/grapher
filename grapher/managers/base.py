@@ -7,6 +7,7 @@ class Manager:
         self.name = name
         self.schema = schema
         self.repository_class = repository_class
+        self.identity = commons.SchemaNavigator.identity_from(self.schema)
 
     _repository = None
 
@@ -15,11 +16,27 @@ class Manager:
         self._repository = self._repository or self.repository_class(self.name, self.schema)
         return self._repository
 
+    def identify(self, entities):
+        identified, unidentified = {}, {}
+
+        for i, entity in enumerate(entities):
+            if self.identity in entity:
+                identified[i] = entity
+            else:
+                unidentified[i] = entity
+
+        return identified, unidentified
+
     def all(self, skip=0, limit=None):
         return self.repository.all(skip=skip, limit=limit)
 
     def find(self, identities):
         return self.repository.find(identities)
+
+    def fetch(self, entities):
+        entities, unidentified = self.identify(entities)
+
+        return self.find((e[self.identity] for e in entities)), unidentified
 
     def query(self, query, skip=0, limit=None):
         return self.repository.where(skip=skip, limit=limit, **query)
@@ -33,5 +50,5 @@ class Manager:
     def update(self, entities):
         return self.update(entities)
 
-    def delete(self, identities):
-        return self.delete(identities)
+    def delete(self, entities):
+        return self.delete(entities)
