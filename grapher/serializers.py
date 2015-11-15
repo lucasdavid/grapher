@@ -29,32 +29,39 @@ class Serializer:
         self._validator = self._validator or validators.GrapherValidator(self.schema)
         return self._validator
 
-    def validate(self, d):
-        if not d:
-            raise errors.BadRequestError(
-                ('DATA_CANNOT_BE_EMPTY', (), ([{'hello': 'world'}],)),
-            )
+    def validate(self, entries):
+        """Validate entries according to a schema.
 
+        :param entries: :dict: containing entries to be validated. E.g.: {0: {...}, 1: {...}, 2: {...}}.
+        :return: :tuple: of :dict:, containing the entries that were accepted and rejected, respectively. E.g.:
+            {0: {...}, 2: {...}}, {1: {...}}
+        """
         accepted, rejected = {}, {}
-
         v = self.validator
 
-        for i, e in enumerate(d):
-            if v.validate(e):
-                accepted[i] = e
+        for i, entry in entries.items():
+            if v.validate(entry):
+                accepted[i] = entry
             else:
                 rejected[i] = v.errors
 
         return accepted, rejected
 
-    def project(self, d):
-        # For each entry, remove all (key->value) pair that isn't in the set
-        # of projected fields, which are private or non-requested fields.
-        for entry in d:
+    def project(self, entries):
+        """For each :dict: entry in entries, remove all (key, value) pairs that are not in the set
+        of projected fields, which are likely private or non-requested fields.
+
+        This happens inplace: as this will be the last operation and the filtered info. will unlikely
+        be reused, there is no need for building other dictionaries.
+
+        :param entries: :dict: containing entries to be projected. E.g.: {0: {...}, 1: {...}, 2: {...}}.
+        :return: :entries filtered.
+        """
+        for i, entry in entries.items():
             for field in entry.keys() - self.projected_fields:
                 del entry[field]
 
-        return d, list(self.projected_fields)
+        return entries, list(self.projected_fields)
 
 
 class DynamicSerializer(Serializer):
