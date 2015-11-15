@@ -48,7 +48,9 @@ class CollectionHelper(metaclass=abc.ABCMeta):
     @classmethod
     def enumerate(cls, item):
         item, transformed = cls.transform(item)
-        item = {i: e for i, e in enumerate(item)}
+
+        if item is not None:
+            item = {i: e for i, e in enumerate(item)}
 
         return item, transformed
 
