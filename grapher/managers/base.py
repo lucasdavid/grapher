@@ -19,7 +19,7 @@ class Manager:
     def identify(self, entities):
         identified, unidentified = {}, {}
 
-        for i, entity in enumerate(entities):
+        for i, entity in entities.items():
             if self.identity in entity:
                 identified[i] = entity
             else:
@@ -35,8 +35,7 @@ class Manager:
 
     def fetch(self, entities):
         entities, unidentified = self.identify(entities)
-
-        return self.find((e[self.identity] for e in entities)), unidentified
+        return self.find((e[self.identity] for i, e in entities.items())), unidentified
 
     def query(self, query, skip=0, limit=None):
         return self.repository.where(skip=skip, limit=limit, **query)
