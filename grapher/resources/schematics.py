@@ -131,7 +131,7 @@ class SchematicResource(Resource):
 
         entries, fields = self.serializer.project(entries)
 
-        status = 207 if entries and rejected else 200 if entries else 400
+        status = 207 if entries and (rejected or failed or unidentified) else 200 if entries else 400
 
         return self.response({
             'updated': entries,

@@ -1,11 +1,10 @@
 from unittest import TestCase
 from unittest.mock import Mock
-
 from faker import Faker
 from grapher import serializers, paginators, settings, commons
 from grapher.resources import SchematicResource, schematics
 from grapher.repositories.graph import GraphEntityRepository
-from grapher.parsers import query
+from grapher.parsers import query, data
 from tests.examples import resources as test_resources
 
 settings.effective = settings.Testing
@@ -41,11 +40,8 @@ class EntityResourceTest(TestCase):
         request.args.get = Mock(return_value=None)
         request.get_json = Mock(return_value=[{'name': f.name(), 'age': f.random_int(20, 40)} for _ in range(4)])
 
-        schematics.request = request
-        commons.request = request
-        query.request = request
-        paginators.request = request
-        serializers.request = request
+        schematics.request = commons.request = data.request = query.request \
+            = paginators.request = serializers.request = request
 
         self.data = [{'name': f.name(), 'age': f.random_int(20, 40)} for _ in range(4)]
         self.entities_with_ids = [{'_id': f.random_int(), 'name': f.name(), 'age': f.random_int(20, 40)} for _ in
@@ -64,8 +60,8 @@ class EntityResourceTest(TestCase):
 
     def test_get(self):
         user = test_resources.User()
-        user._repository = Mock()
-        user._repository.all = Mock(return_value=[{'test': 1} for _ in range(4)])
+        user._manager = Mock()
+        user._manager.query_or_all = Mock(return_value={i: {'name': 'u %i' % i} for i in range(4)})
 
         response, status = user.get()
 
@@ -80,8 +76,8 @@ class EntityResourceTest(TestCase):
         schematics.request.args.get.side_effect = lambda key: key == 'skip' and '2' or key == 'limit' and '2' or None
 
         user = test_resources.User()
-        user._repository = Mock()
-        user._repository.all = Mock(return_value=self.data[2:4])
+        user._manager = Mock()
+        user._manager.query_or_all = Mock(return_value={i: e for i, e in enumerate(self.data[2:4])})
 
         response, status = user.get()
 
@@ -93,8 +89,8 @@ class EntityResourceTest(TestCase):
 
     def test_post(self):
         user = test_resources.User()
-        user._repository = Mock()
-        user._repository.create = Mock(side_effect=lambda e: e)
+        user._manager = Mock()
+        user._manager.create = Mock(side_effect=lambda e: (e, {}))
 
         response, status = user.post()
 
@@ -106,9 +102,9 @@ class EntityResourceTest(TestCase):
     def test_put(self):
         commons.request.get_json = schematics.request.get_json = Mock(return_value=self.entities_with_ids)
         user = test_resources.User()
-        user._repository = Mock()
-        user._repository.find = Mock(side_effect=lambda e: self.entities_with_ids)
-        user._repository.update = Mock(side_effect=lambda e: e)
+        user._manager = Mock()
+        user._manager.fetch = Mock(side_effect=lambda e: (e, {}))
+        user._manager.update = Mock(side_effect=lambda e: (e, {}))
 
         response, status = user.put()
 
@@ -121,9 +117,9 @@ class EntityResourceTest(TestCase):
         commons.request.get_json = schematics.request.get_json = Mock(return_value=self.entities_with_ids)
 
         user = test_resources.User()
-        user._repository = Mock()
-        user._repository.find = Mock(side_effect=lambda e: self.entities_with_ids)
-        user._repository.update = Mock(side_effect=lambda e: e)
+        user._manager = Mock()
+        user._manager.fetch = Mock(side_effect=lambda e: (e, {}))
+        user._manager.update = Mock(side_effect=lambda e: (e, {}))
 
         response, status = user.patch()
 
@@ -136,9 +132,9 @@ class EntityResourceTest(TestCase):
         commons.request.get_json = schematics.request.get_json = Mock(return_value=[])
 
         user = test_resources.User()
-        user._repository = Mock()
-        user._repository.find = Mock(side_effect=lambda e: [])
-        user._repository.update = Mock(side_effect=lambda e: e)
+        user._manager = Mock()
+        user._manager.fetch = Mock(side_effect=lambda e: (e, {}))
+        user._manager.update = Mock(side_effect=lambda e: (e, {}))
 
         response, status = user.patch()
 
@@ -146,19 +142,18 @@ class EntityResourceTest(TestCase):
         self.assertIn('errors', response)
         self.assertIn('DATA_CANNOT_BE_EMPTY', response['errors'])
 
-    def test_patch_with_invalid_data(self):
+    def test_patch_with_missing_ids(self):
         schematics.request.get_json = Mock(return_value=self.data)
 
         user = test_resources.User()
-        user._repository = Mock()
-        user._repository.find = Mock(side_effect=lambda e: self.data)
-        user._repository.update = Mock(side_effect=lambda e: e)
+        user._manager = Mock()
+        user._manager.fetch = Mock(side_effect=lambda e: ({}, e))
+        user._manager.update = Mock(side_effect=lambda e: (e, {}))
 
         response, status = user.patch()
 
         self.assertEqual(status, 400)
-        self.assertIn('errors', response)
-        self.assertIn('UNIDENTIFIABLE', response['errors'])
+        self.assertEqual(len(response['unidentified']), len(self.data))
 
     def test_delete_from_header(self):
         schematics.request.args.get.side_effect = lambda e: e == 'query' and '{"_id": -1}' or None
@@ -298,13 +293,12 @@ class EntityResourceEventsTest(TestCase):
 
             @staticmethod
             def remove_two_entries(entries):
-                for _ in range(2):
-                    entries.pop()
+                del entries[0]
 
         User.initialize()
         user = User()
-        user._repository = Mock()
-        user._repository.all = Mock(return_value=[{'test': 1} for _ in range(4)])
+        user._manager = Mock()
+        user._manager.query_or_all = Mock(return_value={i: {'name': 'u %i' % 1} for i in range(4)})
 
         response, status = user.get()
 
@@ -313,4 +307,4 @@ class EntityResourceEventsTest(TestCase):
         self.assertIn('fields', response)
 
         self.assertIn('content', response)
-        self.assertEqual(len(response['content']), 2)
+        self.assertEqual(len(response['content']), 3)
