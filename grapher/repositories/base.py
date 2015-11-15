@@ -9,6 +9,18 @@ class Repository(metaclass=abc.ABCMeta):
     """
     connection_string = None
 
+    @classmethod
+    def from_dict_of_dicts(cls, entries):
+        return [e for i, e in entries.items()], list(entries.keys())
+
+    @classmethod
+    def to_dict_of_dicts(cls, entities, indices=None):
+        if indices is None:
+            indices = range(len(entities))
+
+        indices = iter(indices)
+        return {next(indices): e for e in entities}
+
     def __init__(self, label, schema):
         """Construct a repository of a :label, constrained by a :schema.
 
@@ -58,36 +70,48 @@ class Repository(metaclass=abc.ABCMeta):
     def create(self, entities):
         """Create and return the created entities.
 
-        The list :entities has dictionaries' instances, each containing
+        The dict of :entities has dictionaries' instances, each containing
         data related to a new entity to be created in the database.
-        This method must return a list containing dictionaries that represent
-        the instances created in the same order they were passed in :entities.
 
-        :param entities: :list of dictionaries that represent the data to be created.
+        This method must return a pair containing dict of dictionaries that represent
+        the instances created (or failed) in the same order they were passed in :entities.
+
+        :param entities: :dict of dictionaries that represent the data to be created, indexed by the order
+        in which they appeared in the request.
+        :return :pair of dicts: (created, failed) containing the entities created and failed indexed by their
+        original order.
         """
         raise NotImplementedError
 
     def update(self, entities):
         """Update and return the entities.
 
-        The list :entities contains dictionaries that represent the data to be
+        The dict of :entities contains dictionaries that represent the data to be
         updated in their respective entity. Each dictionary has, necessarily, the key
         contained in :self.identity, and can be accessed as such: data[self.identity].
-        This method must return a list containing dictionaries that represent
-        the instances updated in the same order they were passed in :entities.
 
-        :param entities: :list of dictionaries that represent the data to be updated.
+        This method must return a pair containing dict of dictionaries that represent
+        the instances updated (or failed) in the same order they were passed in :entities.
+
+        :param entities: :dict of dictionaries that represent the data to be updated, indexed by the order
+        in which they appeared in the request.
+        :return :pair of dicts: (updated, failed) containing the entities updated and failed indexed by their
+        original order.
         """
         raise NotImplementedError
 
-    def delete(self, identities):
-        """Delete and return the entities.
+    def delete(self, entities):
+        """Delete entities and return them.
 
-        The list :identities contains valid identities, instances of :self.schema[self.identity]['type'].
-        This method must return a list containing dictionaries that represent
-        the instances updated in the same order they were passed in :identities.
+        The dict of :entities to be deleted, instances of :self.schema[self.identity]['type'].
 
-        :param identities: identities' :list that reference the entities to be deleted.
+        This method must return a pair containing dict of dictionaries that represent
+        the instances deleted (or failed) in the same order they were passed in :entities.
+
+        :param entities: :dict of dictionaries that represent the data to be deleted, indexed by the order
+        in which they appeared in the request.
+        :return :pair of dicts: (deleted, failed) containing the entities deleted and failed indexed by their
+        original order.
         """
         raise NotImplementedError
 
