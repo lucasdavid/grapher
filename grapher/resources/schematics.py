@@ -56,16 +56,14 @@ class SchematicResource(Resource):
             self.guardian.check_permissions()
 
             self.em().trigger('before_retrieve')
-
             query = parsers.QueryParser.parse()
             entries = self.manager.query_or_all(**query)
-
             self.em().trigger('after_retrieve', entries=entries)
 
             entries, page = self.paginator.paginate(entries)
             entries, fields = self.serializer.project(entries)
 
-            return self.response(entries, fields=fields, page=page, wrap=False)
+            return self.response(entries, fields=fields, page=page, wrap=True)
 
         except errors.GrapherError as e:
             return self.response(status=e.status_code, errors=e.as_api_response())
