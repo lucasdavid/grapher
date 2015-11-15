@@ -29,6 +29,13 @@ class SchematicResource(Resource):
 
             commons.SchemaNavigator.add_identity(cls.schema)
 
+    @classmethod
+    def describe(cls):
+        description = super().describe()
+        description.update(schema=cls.schema)
+
+        return description
+
     @property
     def manager(self):
         self._manager = self._manager or self.manager_class(self.real_name(), self.schema, self.repository_class)
@@ -41,7 +48,7 @@ class SchematicResource(Resource):
 
     @property
     def guardian(self):
-        self._guardian = self._guardian or guardians.Guardian(self.real_name())
+        self._guardian = self._guardian or guardians.Guardian(self.real_name(), self.schema, self.manager_class)
         return self._guardian
 
     def get(self):
@@ -58,10 +65,10 @@ class SchematicResource(Resource):
             entries, page = self.paginator.paginate(entries)
             entries, fields = self.serializer.project(entries)
 
-            return self.response(entries, fields=fields, page=page)
+            return self.response(entries, fields=fields, page=page, wrap=False)
 
         except errors.GrapherError as e:
-            return self.response(status=e.status_code, errors=e.as_api_response(), wrap=False)
+            return self.response(status=e.status_code, errors=e.as_api_response())
 
     def post(self):
         try:
@@ -71,93 +78,69 @@ class SchematicResource(Resource):
             entries, rejected = self.serializer.validate(entries)
 
             self.em().trigger('before_create', entries=entries, rejected=rejected)
-            entries_values = self.manager.create(entries.values())
-            entries = CollectionHelper.zip(entries.keys(), entries_values)
-
+            entries, failed = self.manager.create(entries)
             self.em().trigger('after_create', entries=entries, rejected=rejected)
 
-            entries_values, fields = self.serializer.project(entries.values())
-            entries = CollectionHelper.zip(entries.keys(), entries_values)
+            entries, fields = self.serializer.project(entries)
 
-            status = 207 if entries and rejected else 200 if entries else 400
-            content = {}
-            if entries:
-                content['created'] = entries
-            if rejected:
-                content['failed'] = rejected
+            status = 207 if entries and (rejected or failed) else 200 if entries else 400
 
-            return self.response(content, status=status, wrap=False, fields=fields)
+            return self.response({
+                'created': entries,
+                'rejected': rejected,
+                'failed': failed
+            }, status=status, fields=fields)
 
         except errors.GrapherError as e:
-            return self.response(status=e.status_code, errors=e.as_api_response(), wrap=False)
+            return self.response(status=e.status_code, errors=e.as_api_response())
 
     def put(self):
         try:
             self.guardian.check_permissions()
 
             entries = parsers.DataParser.parse_or_raise()
-            entries, unidentifiables = self._identify(entries)
+            entries, unidentified = self.manager.fetch(entries)
 
-            return self._update(entries.values())
+            return self._update(entries, unidentified)
 
         except errors.GrapherError as e:
-            return self.response(status=e.status_code, errors=e.as_api_response(), wrap=False)
+            return self.response(status=e.status_code, errors=e.as_api_response())
 
     def patch(self):
         try:
             self.guardian.check_permissions()
 
-            r = parsers.DataParser.parse_or_raise()
-            identifiables, unidentifiables = self._identify(r)
-
-            identity = commons.SchemaNavigator.identity_from(self.schema)
-            entries = self.manager.find([entity[identity] for entity in identifiables.values()])
+            request_entries = parsers.DataParser.parse_or_raise()
+            database_entries, unidentified = self.manager.fetch(request_entries)
 
             # Patches the request data onto the database data.
-            for i, data in identifiables.items():
-                entries[i].update(data)
-            del r
+            for i, entry in database_entries.items():
+                entry.update(request_entries[i])
 
-            return self._update(entries, unidentifiables)
+            del request_entries
+
+            return self._update(database_entries, unidentified)
 
         except errors.GrapherError as e:
             return self.response(status=e.status_code, errors=e.as_api_response())
 
-    def _identify(self, entities):
-        identity = commons.SchemaNavigator.identity_from(self.schema)
-        identifiables, unidentifiables = {}, {}
-
-        for i, entity in enumerate(entities):
-            if identity in entity:
-                identifiables[i] = entity
-            else:
-                unidentifiables[i] = entity
-
-        return identifiables, unidentifiables
-
-    def _update(self, entries, unidentifiables=None):
+    def _update(self, entries, unidentified=None):
         entries, rejected = self.serializer.validate(entries)
 
         self.em().trigger('before_update', entries=entries, rejected=rejected)
-
-        entries_values = self.repository.update(entries.values())
-        entries = CollectionHelper.zip(entries.keys(), entries_values)
-
+        entries, failed = self.manager.update(entries)
         self.em().trigger('after_update', entries=entries, rejected=rejected)
 
-        entries_values, fields = self.serializer.project(entries.values())
-        entries = CollectionHelper.zip(entries.keys(), entries_values)
+        entries, fields = self.serializer.project(entries)
 
         status = 207 if entries and rejected else 200 if entries else 400
-        content = {}
-        if entries:
-            content['updated'] = entries
-        if rejected:
-            content['failed'] = rejected
-        if unidentifiables:
-            content['unidentifiables'] = unidentifiables
 
-        return self.response(content, status=status, wrap=False, fields=fields)
+        return self.response({
+            'updated': entries,
+            'failed': failed,
+            'rejected': rejected,
+            'unidentified': unidentified
+        }, status=status, fields=fields)
 
     def delete(self):
         try:
@@ -168,22 +151,18 @@ class SchematicResource(Resource):
 
             self.em().trigger('before_delete', entries=entries)
 
-            entries, failed = self.manager.delete([e[self.identity] for e in entries])
+            entries, failed = self.manager.delete(entries)
             entries, fields = self.serializer.project(entries)
 
             self.em().trigger('after_delete', entries=entries)
 
-            return self.response({'deleted': entries}, fields=fields, wrap=False)
+            return self.response({
+                'deleted': entries,
+                'failed': failed
+            }, fields=fields)
 
         except errors.GrapherError as e:
             return self.response(status=e.status_code, errors=e.as_api_response())
-
-    @classmethod
-    def describe(cls):
-        description = super().describe()
-        description.update(schema=cls.schema)
-
-        return description
 
 
 class EntityResource(SchematicResource):
