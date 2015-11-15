@@ -118,6 +118,12 @@ class CollectionHelperTest(TestCase):
             self.assertEqual(len(result), 1)
             self.assertIs(result[0], i)
 
+    def test_enumerate_none(self):
+        result, transformed = commons.CollectionHelper.enumerate(None)
+
+        self.assertIsNone(result)
+        self.assertFalse(transformed)
+
     def test_restore_enumeration(self):
         e = {0: 1, 1: 2, 2: 3}
 

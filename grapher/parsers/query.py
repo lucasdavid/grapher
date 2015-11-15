@@ -8,19 +8,6 @@ from .base import Parser
 
 class QueryParser(Parser, metaclass=abc.ABCMeta):
     request_query_keyword = 'query'
-    operators = {'$and', '$or', '$not'}
-
-    @classmethod
-    def _is_operator(cls, key):
-        return key[0] == '$'
-
-    @classmethod
-    def _validate_query(cls, query):
-        for key, value in query.items():
-            if cls._is_operator(key) and key not in cls.operators:
-                raise errors.BadRequestError(
-                    ('INVALID_QUERY', (key, str(query)), ('?where={$and:{"name": "grapher"}}',))
-                )
 
     @classmethod
     def _query(cls):
@@ -31,8 +18,6 @@ class QueryParser(Parser, metaclass=abc.ABCMeta):
                 query = json.loads(query)
             except ValueError:
                 raise errors.BadRequestError(('INVALID_QUERY', (str(query),)))
-
-            cls._validate_query(query)
 
         return query or {}
 

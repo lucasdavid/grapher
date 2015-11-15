@@ -1,5 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock
+
+from grapher import errors
 from grapher.parsers import QueryParser
 from grapher.parsers import query
 from nose_parameterized import parameterized
@@ -30,3 +32,9 @@ class QueryParserTest(TestCase):
         actual = QueryParser.parse()
 
         self.assertEqual(actual, expected)
+
+    def test_invalid_query(self):
+        query.request.args.get.return_value = 'invalid$query:{{{}'
+
+        with self.assertRaises(errors.BadRequestError):
+            QueryParser.parse()

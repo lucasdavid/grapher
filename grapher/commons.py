@@ -60,10 +60,6 @@ class CollectionHelper(metaclass=abc.ABCMeta):
 
         return cls.restore(item, previously_transformed)
 
-    @classmethod
-    def zip(cls, keys, values):
-        return dict(zip(keys, values))
-
 
 class SchemaNavigator(metaclass=abc.ABCMeta):
     @classmethod
