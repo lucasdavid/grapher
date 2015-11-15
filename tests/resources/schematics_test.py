@@ -163,22 +163,9 @@ class EntityResourceTest(TestCase):
     def test_delete_from_header(self):
         schematics.request.args.get.side_effect = lambda e: e == 'query' and '{"_id": -1}' or None
         user = test_resources.User()
-        user._repository = Mock()
-        user._repository.where = Mock(return_value=self.entities_with_ids)
-        user._repository.delete = Mock(return_value=self.entities_with_ids)
-
-        response, status = user.delete()
-
-        self.assertEqual(status, 200)
-        self.assertIn('fields', response)
-        self.assertIn('deleted', response)
-        self.assertEqual(len(response['deleted']), len(self.entities_with_ids))
-
-    def test_delete_from_body(self):
-        schematics.request.get_json = Mock(return_value=self.entities_with_ids)
-        user = test_resources.User()
-        user._repository = Mock()
-        user._repository.delete = Mock(side_effect=lambda e: self.entities_with_ids)
+        user._manager = Mock()
+        user._manager.query = Mock(return_value={i: e for i, e in enumerate(self.entities_with_ids)})
+        user._manager.delete = Mock(return_value=({i: e for i, e in enumerate(self.entities_with_ids)}, {}))
 
         response, status = user.delete()
 
@@ -190,13 +177,13 @@ class EntityResourceTest(TestCase):
     def test_delete_empty_data(self):
         schematics.request.get_json = Mock(return_value=[])
         user = test_resources.User()
-        user._repository = Mock()
+        user._manager = Mock()
 
         response, status = user.delete()
 
         self.assertEqual(status, 400)
         self.assertIn('errors', response)
-        self.assertIn('DATA_CANNOT_BE_EMPTY', response['errors'])
+        self.assertIn('MISSING_QUERY', response['errors'])
 
 
 class RelationshipResourceTest(TestCase):

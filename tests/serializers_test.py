@@ -1,6 +1,5 @@
 from unittest import TestCase
 from unittest.mock import Mock
-
 from nose_parameterized import parameterized
 from grapher import serializers, errors
 
@@ -9,17 +8,17 @@ class SerializerTest(TestCase):
     @parameterized.expand([
         (
                 {'a': {'type': 'string'}, 'b': {'type': 'integer'}},
-                [{'a': 'a', 'b': 2}],
+                {0: {'a': 'a', 'b': 2}},
                 {'a', 'b'}
         ),
         (
                 {'a': {'type': 'string'}, 'b': {'type': 'integer', 'visible': False}},
-                [{'a': 'a', 'b': 2}],
+                {0: {'a': 'a', 'b': 2}},
                 {'a'}
         ),
         (
                 {'a': {'type': 'string', 'visible': False}, 'b': {'type': 'integer', 'visible': False}},
-                [{'a': 'a'}],
+                {0: {'a': 'a'}},
                 set()
         ),
     ])
@@ -32,13 +31,7 @@ class SerializerTest(TestCase):
         fields = set(fields)
         self.assertEqual(fields, expected_fields)
 
-        # Lists and dicts should keep being what they are.
-        self.assertIs(type(result), type(data))
-
-        if not isinstance(result, list):
-            result = [result]
-
-        for entry in result:
+        for i, entry in result.items():
             entry_fields = set(entry.keys())
 
             # No entry should have a field that isn't specified in fields.
@@ -71,14 +64,8 @@ class SerializerTest(TestCase):
 
         self.assertEqual(s.projected_fields, expected)
 
-    def test_validate_null_data(self):
-        s = serializers.Serializer('test', {})
-
-        with self.assertRaises(errors.BadRequestError):
-            s.validate(None)
-
     @parameterized.expand([
-        ({}, [{'a': 1}], ({}, {0: {'a': 'unknown field'}}))
+        ({}, {0: {'a': 1}}, ({}, {0: {'a': 'unknown field'}}))
     ])
     def test_validate(self, schema, data, expected):
         s = serializers.Serializer('test', schema)

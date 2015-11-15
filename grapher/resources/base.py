@@ -96,7 +96,7 @@ class Resource(flask_restful.Resource):
         """
         result = {}
 
-        if clean_content and content:
+        if clean_content and content and isinstance(content, dict):
             content = {i: v for i, v in content.items() if v}
 
         if meta:

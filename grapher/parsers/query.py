@@ -52,7 +52,7 @@ class QueryParser(Parser, metaclass=abc.ABCMeta):
     def parse_or_raise(cls):
         query = cls.parse()
 
-        if not query:
+        if not query['query']:
             raise errors.BadRequestError('MISSING_QUERY')
 
         return query

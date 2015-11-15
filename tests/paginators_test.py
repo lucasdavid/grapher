@@ -1,7 +1,6 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
 from nose_parameterized import parameterized
-
 from grapher import paginators
 
 
@@ -16,18 +15,17 @@ class PaginatorTest(TestCase):
         paginators.request = request
 
     def test_paginate(self):
-        data = [1, 2, 3, 4]
+        data = {i: i for i in range(4)}
 
         p = paginators.Paginator
         p.soft_pagination = False
 
         content, page = p.paginate(data, 2, 2)
         self.assertEqual(len(content), 2, content)
-        self.assertEqual(content[0], 3)
-        self.assertEqual(content[1], 4)
+        self.assertDictEqual(content, {2: 2, 3: 3})
 
     def test_soft_paginate(self):
-        data = [1, 2, 3, 4]
+        data = {i: i for i in range(4)}
 
         p = paginators.Paginator
         p.soft_pagination = True
