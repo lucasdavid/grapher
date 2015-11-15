@@ -1,5 +1,4 @@
 import flask_restful
-
 from .. import paginators, events, settings
 
 
@@ -83,18 +82,22 @@ class Resource(flask_restful.Resource):
         }
 
     @staticmethod
-    def response(content=None, status=200, wrap=True, **meta):
+    def response(content=None, status=200, wrap=False, clean_content=True, **meta):
         """Wraps the content with a default response structure and add metadata.
 
         :param content: the content that will be wrapped.
         :param status: the status to be sent with in the HTTP response.
         :param wrap: overrides content wrapping. If content is a :dict and :meta != {}, :meta and :content are merged.
+        :param clean_content: eliminate empty keys in content before adding it.
         :param meta: :dict that will be add to the '_metadata' key in the response.
 
         :return: :tuple (:dict response , :int status)
         :raise ValueError: If the content is not a dictionary, wrap was set to False and there's metadata to add.
         """
         result = {}
+
+        if clean_content and content:
+            content = {i: v for i, v in content.items() if v}
 
         if meta:
             result.update(meta)
