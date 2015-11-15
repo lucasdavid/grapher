@@ -21,7 +21,7 @@ class Paginator(metaclass=abc.ABCMeta):
         limit = isinstance(limit, int) and limit or int(limit)
 
         if not cls.soft_pagination:
-            data = data[skip:skip + limit]
+            data = {k: data[k] for k in set(list(data.keys())[skip:skip + limit])}
 
         count = len(data)
 

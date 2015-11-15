@@ -48,7 +48,7 @@ class Serializer:
         return accepted, rejected
 
     def project(self, entries):
-        """For each :dict: entry in entries, remove all (key, value) pairs that are not in the set
+        """For each entry in entries, remove all (key, value) pairs that are not in the set
         of projected fields, which are likely private or non-requested fields.
 
         This happens inplace: as this will be the last operation and the filtered info. will unlikely
