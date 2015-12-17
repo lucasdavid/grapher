@@ -1,5 +1,4 @@
-from flask_restful import request
-from .. import parsers, commons
+from .. import commons
 
 
 class Manager:
@@ -47,7 +46,7 @@ class Manager:
         return self.repository.create(entities)
 
     def update(self, entities):
-        return self.update(entities)
+        return self.repository.update(entities)
 
     def delete(self, entities):
-        return self.delete(entities)
+        return self.repository.delete(entities)

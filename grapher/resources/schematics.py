@@ -4,7 +4,6 @@ from .. import managers
 from ..managers import guardians
 from .. import repositories, serializers, parsers, commons, settings, errors
 from ..repositories import graph
-from ..commons import CollectionHelper
 
 
 class SchematicResource(Resource):
@@ -38,17 +37,20 @@ class SchematicResource(Resource):
 
     @property
     def manager(self):
-        self._manager = self._manager or self.manager_class(self.real_name(), self.schema, self.repository_class)
+        self._manager = self._manager or self.manager_class(
+                self.real_name(), self.schema, self.repository_class)
         return self._manager
 
     @property
     def serializer(self):
-        self._serializer = self._serializer or self.serializer_class(self.real_name(), self.schema)
+        self._serializer = self._serializer or self.serializer_class(
+                self.real_name(), self.schema)
         return self._serializer
 
     @property
     def guardian(self):
-        self._guardian = self._guardian or guardians.Guardian(self.real_name(), self.schema, self.manager_class)
+        self._guardian = self._guardian or guardians.Guardian(
+                self.real_name(), self.schema, self.manager_class)
         return self._guardian
 
     def get(self):
@@ -66,7 +68,8 @@ class SchematicResource(Resource):
             return self.response(entries, fields=fields, page=page, wrap=True)
 
         except errors.GrapherError as e:
-            return self.response(status=e.status_code, errors=e.as_api_response())
+            return self.response(status=e.status_code,
+                                 errors=e.as_api_response())
 
     def post(self):
         try:
@@ -75,13 +78,17 @@ class SchematicResource(Resource):
             entries = parsers.DataParser.parse_or_raise()
             entries, rejected = self.serializer.validate(entries)
 
-            self.em().trigger('before_create', entries=entries, rejected=rejected)
-            entries, failed = self.manager.create(entries)
-            self.em().trigger('after_create', entries=entries, rejected=rejected)
+            self.em().trigger('before_create',
+                              entries=entries, rejected=rejected)
+            entries, failed = self.manager.create(entries) if entries \
+                else ({}, {})
+            self.em().trigger('after_create',
+                              entries=entries, rejected=rejected)
 
             entries, fields = self.serializer.project(entries)
 
-            status = 207 if entries and (rejected or failed) else 200 if entries else 400
+            status = 207 if entries and (rejected or failed) \
+                else 200 if entries else 400
 
             return self.response({
                 'created': entries,
@@ -90,7 +97,8 @@ class SchematicResource(Resource):
             }, status=status, fields=fields)
 
         except errors.GrapherError as e:
-            return self.response(status=e.status_code, errors=e.as_api_response())
+            return self.response(status=e.status_code,
+                                 errors=e.as_api_response())
 
     def put(self):
         try:
@@ -102,7 +110,8 @@ class SchematicResource(Resource):
             return self._update(entries, unidentified)
 
         except errors.GrapherError as e:
-            return self.response(status=e.status_code, errors=e.as_api_response())
+            return self.response(status=e.status_code,
+                                 errors=e.as_api_response())
 
     def patch(self):
         try:
@@ -120,18 +129,20 @@ class SchematicResource(Resource):
             return self._update(database_entries, unidentified)
 
         except errors.GrapherError as e:
-            return self.response(status=e.status_code, errors=e.as_api_response())
+            return self.response(status=e.status_code,
+                                 errors=e.as_api_response())
 
     def _update(self, entries, unidentified=None):
         entries, rejected = self.serializer.validate(entries)
 
         self.em().trigger('before_update', entries=entries, rejected=rejected)
-        entries, failed = self.manager.update(entries)
+        entries, failed = self.manager.update(entries) if entries else ({}, {})
         self.em().trigger('after_update', entries=entries, rejected=rejected)
 
         entries, fields = self.serializer.project(entries)
 
-        status = 207 if entries and (rejected or failed or unidentified) else 200 if entries else 400
+        status = 207 if entries and (rejected or failed or unidentified) \
+            else 200 if entries else 400
 
         return self.response({
             'updated': entries,
@@ -149,7 +160,8 @@ class SchematicResource(Resource):
 
             self.em().trigger('before_delete', entries=entries)
 
-            entries, failed = self.manager.delete(entries)
+            entries, failed = self.manager.delete(entries) if entries \
+                else ({}, {})
             entries, fields = self.serializer.project(entries)
 
             self.em().trigger('after_delete', entries=entries)
@@ -160,7 +172,8 @@ class SchematicResource(Resource):
             }, fields=fields)
 
         except errors.GrapherError as e:
-            return self.response(status=e.status_code, errors=e.as_api_response())
+            return self.response(status=e.status_code,
+                                 errors=e.as_api_response())
 
 
 class EntityResource(SchematicResource):
@@ -172,7 +185,8 @@ class EntityResource(SchematicResource):
         if not cls.initialized:
             super().initialize()
 
-            assert issubclass(cls.repository_class, repositories.base.EntityRepository)
+            assert issubclass(cls.repository_class,
+                              repositories.base.EntityRepository)
 
     @classmethod
     def real_end_point(cls):
@@ -189,9 +203,11 @@ class EntityResource(SchematicResource):
         if cls.end_point is not None:
             end_point = cls.end_point
         else:
-            end_point = cls.pluralize and commons.WordHelper.pluralize(cls.real_name()) or cls.real_name()
+            end_point = cls.pluralize and commons.WordHelper.pluralize(
+                    cls.real_name()) or cls.real_name()
 
-        end_point = '/'.join((settings.effective.BASE_END_POINT.lower(), end_point.lower())).replace('//', '/')
+        end_point = '/'.join((settings.effective.BASE_END_POINT.lower(),
+                              end_point.lower())).replace('//', '/')
 
         return '/' + end_point if end_point[0] != '/' else end_point
 
@@ -207,36 +223,45 @@ class RelationshipResource(SchematicResource):
         if not cls.initialized:
             super().initialize()
 
-            assert issubclass(cls.repository_class, repositories.base.RelationshipRepository)
+            assert issubclass(cls.repository_class,
+                              repositories.base.RelationshipRepository)
 
             if not cls.origin or not cls.target:
-                raise ValueError('Relationship resources must have a valid origin and target attribute set.')
+                raise ValueError(
+                        'Relationship resources must have a valid origin and target attribute set.')
 
             # If one of the references are strings, import the actual classes.
             if isinstance(cls.origin, str) or isinstance(cls.target, str):
-                user_resources = importlib.import_module('%s.%s' % (settings.effective.BASE_MODULE, 'resources'))
+                user_resources = importlib.import_module(
+                        '%s.%s' % (settings.effective.BASE_MODULE, 'resources'))
 
                 if isinstance(cls.origin, str):
                     cls.origin = getattr(user_resources, cls.origin)
                 if isinstance(cls.target, str):
                     cls.target = getattr(user_resources, cls.target)
 
-            # Initialize origin and target resources, as we have to access their schemas.
+            # Initialize origin and target resources
+            # in order to access their schemas.
             cls.origin.initialize()
             cls.target.initialize()
 
-            # Make sure classes are :EntityResource sub-class, as they are databases' entities.
+            # Make sure origin and target are :EntityResource sub-class,
+            # as they are databases' entities.
             if not issubclass(cls.origin, EntityResource):
-                raise ValueError(
-                    'Origin references {%s}. Try a EntityResource subclass instead.' % EntityResource.__name__)
+                raise ValueError('Origin references {%s}.'
+                                 'Try a EntityResource subclass instead.'
+                                 % EntityResource.__name__)
             if not issubclass(cls.target, EntityResource):
-                raise ValueError(
-                    'Target references {%s}. Try a EntityResource subclass instead.' % EntityResource.__name__)
+                raise ValueError('Target references {%s}.'
+                                 'Try a EntityResource subclass instead.'
+                                 % EntityResource.__name__)
 
             # Check if cardinality has a valid value.
             if cls.cardinality not in commons.Cardinality.types:
-                raise ValueError('Cardinality must be one of the following: %s. %s was given.' % (
-                    str(commons.Cardinality.types), str(cls.cardinality)))
+                raise ValueError('Cardinality must be one of the following: %s.'
+                                 '%s was given.'
+                                 % (str(commons.Cardinality.types),
+                                    str(cls.cardinality)))
 
             # Injecting :_origin and :_target properties in schema.
             # They are fundamental as this is a relationship resource.
@@ -256,12 +281,13 @@ class RelationshipResource(SchematicResource):
     def describe(cls):
         description = super().describe()
         description.update(
-            description=cls.description or 'Relationship %s' % cls.real_name(),
-            relationship={
-                'origin': cls.origin.real_name(),
-                'target': cls.target.real_name(),
-                'cardinality': cls.cardinality
-            }
+                description=cls.description or 'Relationship %s'
+                                               % cls.real_name(),
+                relationship={
+                    'origin': cls.origin.real_name(),
+                    'target': cls.target.real_name(),
+                    'cardinality': cls.cardinality
+                }
         )
 
         return description
