@@ -6,7 +6,7 @@ from . import base
 from .. import errors, settings
 
 
-class GraphRepository(metaclass=abc.ABCMeta):
+class GraphRepository(base.Repository, metaclass=abc.ABCMeta):
     _g = None
     connection_string = settings.effective.DATABASES['neo4j']
 
@@ -20,33 +20,14 @@ class GraphRepository(metaclass=abc.ABCMeta):
 
         return self._g
 
-    def _data_to_entities(self, d):
-        """Transform entities from data.
-
-        This method must return a :list of :entities ordered by the sequence
-        that their correspondent have appeared in d.
-
-        :param d: :list of :dict containing the data of the entities.
-        :return: :list of :entities from :d.
-        """
-        raise NotImplementedError
-
-    def _data_from_entities(self, entities):
-        """Transform persisted entities to dictionaries.
-
-        Serializer is expecting a list of dictionaries, but GraphRepository will always return a list of nodes.
-        To fix this, transform these entities into dictionaries.
-
-        :param entities: :list of entities that will be returned.
-        :return: :list of :dict that represent the persisted entities.
-        """
-        raise NotImplementedError
-
     def _build(self, identities):
-        """Build entities based on their identities.
+        """Build entities or relationships based on their identities.
 
-        :param identities: :list of identities compatible with self.schema[self.identity]['type'].
-        :return: a list of :nodes or :relationships corresponding to the identities passed, in order.
+        :param identities: :list of identities compatible with
+        self.schema[self.identity]['type'].
+
+        :return: a list of :nodes or :relationships corresponding to
+        the identities passed, in order.
         """
         raise NotImplementedError
 
@@ -58,31 +39,53 @@ class GraphRepository(metaclass=abc.ABCMeta):
         except py2neo.GraphError:
             raise errors.NotFoundError(('NOT_FOUND', identities))
 
-        return self._data_from_entities(entities)
+        return self.to_dict_of_dicts(entities)
 
     def create(self, entities):
-        entities = self._data_to_entities(entities)
+        entities = self.from_dict_of_dicts(entities)
         entities = self.g.create(*entities)
 
-        return self._data_from_entities(entities)
+        return self.to_dict_of_dicts(entities), {}
 
     def update(self, entities):
-        entities = self._data_to_entities(entities)
+        entities = self.from_dict_of_dicts(entities)
 
         self.g.push(*entities)
 
-        return self._data_from_entities(entities)
+        return self.to_dict_of_dicts(entities), {}
 
     def delete(self, identities):
         entities = self._build(identities)
         entities = self.g.delete(*entities)
 
-        return self._data_from_entities(entities)
+        return self.to_dict_of_dicts(entities), {}
 
 
 class GraphEntityRepository(GraphRepository, base.EntityRepository):
-    def _data_from_entities(self, entities):
-        entries = []
+    def _build(self, identities):
+        return [self.g.node(i) for i in identities]
+
+    def from_dict_of_dicts(self, entries):
+        nodes = []
+
+        for i, entry in entries.items():
+            # Find if the node exists on the database or is a new node.
+            if self.identity in entry:
+                # The entry claims to have an identity,
+                # bind the node to a database node.
+                node = self.g.node(entry[self.identity])
+                del entry[self.identity]
+            else:
+                # That's a new entry. Create a new node.
+                node = Node(self.label)
+
+            node.properties.update(entry)
+            nodes.append(node)
+
+        return nodes
+
+    def to_dict_of_dicts(self, entities, indices=None):
+        entries, entities = [], list(entities)
 
         for node in entities:
             e = node.properties
@@ -90,28 +93,7 @@ class GraphEntityRepository(GraphRepository, base.EntityRepository):
 
             entries.append(e)
 
-        return entries
-
-    def _data_to_entities(self, d):
-        nodes = []
-
-        for e in d:
-            # Find if the node exists on the database or is a new node.
-            if self.identity in e:
-                # The entry claims to have an identity, bind the node to a database node.
-                node = self.g.node(e[self.identity])
-                del e[self.identity]
-            else:
-                # That's a new entry. Create a new node.
-                node = Node(self.label)
-
-            node.properties.update(e)
-            nodes.append(node)
-
-        return nodes
-
-    def _build(self, identities):
-        return [self.g.node(i) for i in identities]
+        return super().to_dict_of_dicts(entries)
 
     def all(self, skip=0, limit=None):
         if limit is not None:
@@ -123,12 +105,15 @@ class GraphEntityRepository(GraphRepository, base.EntityRepository):
         for _ in range(skip):
             next(nodes)
 
-        return self._data_from_entities(nodes)
+        return self.to_dict_of_dicts(nodes)
 
     def where(self, skip=0, limit=None, **query):
         if len(query) != 1:
-            raise ValueError('GraphRepository.where does not support multiple parameter filtering yet.')
+            raise ValueError('GraphRepository.where does not support '
+                             'multiple parameter filtering yet.')
 
+        # TODO: Allow multiple keys when searching. This issue might help:
+        # http://stackoverflow.com/questions/27795874/py2neo-graph-find-one-with-multiple-key-values
         query_item = query.popitem()
         if query_item[0] == self.identity:
             return self.find((query_item[1],))
@@ -141,27 +126,19 @@ class GraphEntityRepository(GraphRepository, base.EntityRepository):
         for _ in range(skip):
             next(nodes)
 
-        return self._data_from_entities(nodes)
+        return self.to_dict_of_dicts(nodes)
 
 
 class GraphRelationshipRepository(GraphRepository, base.RelationshipRepository):
-    def _data_from_entities(self, entities):
+    def _build(self, identities):
+        return [self.g.relationship(i) for i in identities]
+
+    def from_dict_of_dicts(self, entries):
+        entities, indices = super().from_dict_of_dicts(entries)
+
         relationships = []
 
         for r in entities:
-            e = r.properties
-            e[self.identity] = r._id
-            e['_origin'] = r.start_node._id
-            e['_target'] = r.end_node._id
-
-            relationships.append(e)
-
-        return relationships
-
-    def _data_to_entities(self, d):
-        relationships = []
-
-        for r in d:
             if self.identity in r:
                 relationship = self.g.relationship(r)
             else:
@@ -181,39 +158,53 @@ class GraphRelationshipRepository(GraphRepository, base.RelationshipRepository):
             relationship.properties.update(r)
             relationships.append(relationship)
 
-        return relationships
+        return relationships, indices
 
-    def _build(self, identities):
-        return [self.g.relationship(i) for i in identities]
+    def to_dict_of_dicts(self, entities, indices=None):
+        relationships = []
+
+        for r in entities:
+            e = r.properties
+            e[self.identity] = r._id
+            e['_origin'] = r.start_node._id
+            e['_target'] = r.end_node._id
+
+            relationships.append(e)
+
+        return super().to_dict_of_dicts(relationships, indices)
 
     def all(self, skip=0, limit=None):
-        """Match all relationships, as long as they share the same label with this repository.
+        """Match all relationships, as long as they share the same label
+        with this repository.
 
-        :param skip: the number of elements to skip when retrieving. If None, none element should be skipped.
-        :param limit: the maximum length of the list retrieved. If None, returns all elements after :skip.
+        :param skip: the number of elements to skip when retrieving.
+        If None, none element should be skipped.
+
+        :param limit: the maximum length of the list retrieved.
+        If None, returns all elements after :skip.
         """
         return self.match(skip=skip, limit=limit)
 
     def match(self, origin=None, target=None, skip=0, limit=None):
         if origin:
             origin = self.g.node(origin)
-
         if target:
             target = self.g.node(target)
-
         if limit is not None:
             limit += skip
 
-        relationships = self.g.match(origin, self.label.upper(), target, limit=limit)
+        relationships = self.g.match(origin, self.label.upper(), target,
+                                     limit=limit)
 
         for _ in range(skip):
             next(relationships)
 
-        return self._data_from_entities(relationships)
+        return self.to_dict_of_dicts(relationships)
 
     def where(self, skip=0, limit=None, **query):
         if len(query) != 1:
-            raise ValueError('GraphRepository.where does not support multiple parameter filtering yet.')
+            raise ValueError('GraphRepository.where does not support'
+                             'multiple parameter filtering yet.')
 
         query_item = query.popitem()
         if query_item[0] == self.identity:

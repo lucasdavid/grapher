@@ -5,7 +5,7 @@ from . import base
 from .. import settings
 
 
-class MongodbRepository(metaclass=abc.ABCMeta):
+class MongodbRepository(base.Repository, metaclass=abc.ABCMeta):
     connection_string = settings.effective.DATABASES['mongodb']
     _database = None
     _mongodb_client = None
@@ -13,12 +13,15 @@ class MongodbRepository(metaclass=abc.ABCMeta):
     @property
     def mongodb_client(self):
         self._mongodb_client = self._mongodb_client or \
-                               MongoClient(**{k: self.connection_string[k] for k in {'host', 'port'}})
+                               MongoClient(
+                                   **{k: self.connection_string[k] for k in
+                                      {'host', 'port'}})
         return self._mongodb_client
 
     @property
     def database(self):
-        self._database = self._database or self.mongodb_client[self.connection_string['name']]
+        self._database = self._database or self.mongodb_client[
+            self.connection_string['name']]
         return self._database
 
     @property
@@ -68,8 +71,9 @@ class MongodbEntityRepository(MongodbRepository, base.EntityRepository):
 
         try:
             result = self.collection.bulk_write(
-                (UpdateOne({'_id': e[self.identity]}, {'$set': e}) for e in entities), ordered=True)
-            
+                    (UpdateOne({'_id': e[self.identity]}, {'$set': e}) for e in
+                     entities), ordered=True)
+
         except BulkWriteError as bulk_error:
             for error in bulk_error['writeErrors']:
                 i = error['index']
@@ -89,5 +93,25 @@ class MongodbEntityRepository(MongodbRepository, base.EntityRepository):
         return self.to_dict_of_dicts(entities, indices), {}
 
 
-class MongodbRelationshipRepository(MongodbRepository, base.RelationshipRepository):
-    pass
+class MongodbRelationshipRepository(MongodbRepository,
+                                    base.RelationshipRepository):
+    def match(self, origin=None, target=None, skip=0, limit=None):
+        pass
+
+    def update(self, entities):
+        pass
+
+    def where(self, skip=0, limit=None, **query):
+        pass
+
+    def delete(self, entities):
+        pass
+
+    def all(self, skip=0, limit=None):
+        pass
+
+    def find(self, identities):
+        pass
+
+    def create(self, entities):
+        pass

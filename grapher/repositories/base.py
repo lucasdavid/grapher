@@ -9,12 +9,10 @@ class Repository(metaclass=abc.ABCMeta):
     """
     connection_string = None
 
-    @classmethod
-    def from_dict_of_dicts(cls, entries):
+    def from_dict_of_dicts(self, entries):
         return [e for i, e in entries.items()], list(entries.keys())
 
-    @classmethod
-    def to_dict_of_dicts(cls, entities, indices=None):
+    def to_dict_of_dicts(self, entities, indices=None):
         if indices is None:
             indices = range(len(entities))
 
