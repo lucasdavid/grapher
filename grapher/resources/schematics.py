@@ -1,7 +1,7 @@
 import importlib
+from grapher.auth.guardians import Guardian
 from .base import Resource
 from .. import managers
-from ..managers import guardians
 from .. import repositories, serializers, parsers, commons, settings, errors
 from ..repositories import graph
 
@@ -12,7 +12,6 @@ class SchematicResource(Resource):
     manager_class = managers.Manager
     repository_class = repositories.base.Repository
     serializer_class = serializers.DynamicSerializer
-    guardian_class = guardians.Guardian
 
     _manager = None
     _serializer = None
@@ -20,13 +19,12 @@ class SchematicResource(Resource):
 
     @classmethod
     def initialize(cls):
-        if not cls.initialized:
-            super().initialize()
+        super().initialize()
 
-            if not cls.schema:
-                cls.schema = {}
+        if not cls.schema:
+            cls.schema = {}
 
-            commons.SchemaNavigator.add_identity(cls.schema)
+        commons.SchemaNavigator.add_identity(cls.schema)
 
     @classmethod
     def describe(cls):
@@ -49,8 +47,7 @@ class SchematicResource(Resource):
 
     @property
     def guardian(self):
-        self._guardian = self._guardian or guardians.Guardian(
-                self.real_name(), self.schema, self.manager_class)
+        self._guardian = self._guardian or Guardian(self)
         return self._guardian
 
     def get(self):
@@ -182,23 +179,24 @@ class EntityResource(SchematicResource):
 
     @classmethod
     def initialize(cls):
-        if not cls.initialized:
-            super().initialize()
-
-            assert issubclass(cls.repository_class,
-                              repositories.base.EntityRepository)
+        super().initialize()
+        assert issubclass(cls.repository_class,
+                          repositories.base.EntityRepository)
 
     @classmethod
     def real_end_point(cls):
         """Retrieve the resource end-point based on its end-point or name.
 
-        The end-point is chosen between one of the following, in desc order of priority:
-            The :end_point class property, if set by the user;
-            The :name class property, if set by the user;
-            The plural form of the name of the class, if class property :pluralize is True;
-            The name of the class.
+        The end-point is chosen between one of the following, in desc order
+        of priority:
+            > The :end_point class property, if set by the user;
+            > The :name class property, if set by the user;
+            > The plural form of the name of the class, if class property
+                :pluralize is True;
+            > The name of the class.
 
-        :return: :str: the string representing the end-point of the entity resource.
+        :return: :str: the string representing the end-point of the entity
+            resource.
         """
         if cls.end_point is not None:
             end_point = cls.end_point
@@ -220,62 +218,62 @@ class RelationshipResource(SchematicResource):
 
     @classmethod
     def initialize(cls):
-        if not cls.initialized:
-            super().initialize()
+        super().initialize()
+        assert issubclass(cls.repository_class,
+                          repositories.base.RelationshipRepository)
 
-            assert issubclass(cls.repository_class,
-                              repositories.base.RelationshipRepository)
+        if not cls.origin or not cls.target:
+            raise ValueError('Relationship resources must have a valid '
+                             'origin and target attribute set.')
 
-            if not cls.origin or not cls.target:
-                raise ValueError(
-                        'Relationship resources must have a valid origin and target attribute set.')
+        # If one of the references are strings, import the actual classes.
+        if isinstance(cls.origin, str) or isinstance(cls.target, str):
+            user_resources = importlib.import_module(
+                    '%s.%s' % (settings.effective.BASE_MODULE, 'resources'))
 
-            # If one of the references are strings, import the actual classes.
-            if isinstance(cls.origin, str) or isinstance(cls.target, str):
-                user_resources = importlib.import_module(
-                        '%s.%s' % (settings.effective.BASE_MODULE, 'resources'))
+            if isinstance(cls.origin, str):
+                cls.origin = getattr(user_resources, cls.origin)
+            if isinstance(cls.target, str):
+                cls.target = getattr(user_resources, cls.target)
 
-                if isinstance(cls.origin, str):
-                    cls.origin = getattr(user_resources, cls.origin)
-                if isinstance(cls.target, str):
-                    cls.target = getattr(user_resources, cls.target)
-
-            # Initialize origin and target resources
-            # in order to access their schemas.
+        # Initialize origin and target resources
+        # in order to access their schemas.
+        if not cls.origin.initialized:
             cls.origin.initialize()
+        if not cls.target.initialized:
             cls.target.initialize()
 
-            # Make sure origin and target are :EntityResource sub-class,
-            # as they are databases' entities.
-            if not issubclass(cls.origin, EntityResource):
-                raise ValueError('Origin references {%s}.'
-                                 'Try a EntityResource subclass instead.'
-                                 % EntityResource.__name__)
-            if not issubclass(cls.target, EntityResource):
-                raise ValueError('Target references {%s}.'
-                                 'Try a EntityResource subclass instead.'
-                                 % EntityResource.__name__)
+        # Make sure origin and target are :EntityResource sub-class,
+        # as they are databases' entities.
+        if not issubclass(cls.origin, EntityResource):
+            raise ValueError('Origin references {%s}.'
+                             'Try a EntityResource subclass instead.'
+                             % EntityResource.__name__)
+        if not issubclass(cls.target, EntityResource):
+            raise ValueError('Target references {%s}.'
+                             'Try a EntityResource subclass instead.'
+                             % EntityResource.__name__)
 
-            # Check if cardinality has a valid value.
-            if cls.cardinality not in commons.Cardinality.types:
-                raise ValueError('Cardinality must be one of the following: %s.'
-                                 '%s was given.'
-                                 % (str(commons.Cardinality.types),
-                                    str(cls.cardinality)))
+        # Check if cardinality has a valid value.
+        if cls.cardinality not in commons.Cardinality.types:
+            raise ValueError('Cardinality must be one of the following: %s.'
+                             '%s was given.'
+                             % (str(commons.Cardinality.types),
+                                str(cls.cardinality)))
 
-            # Injecting :_origin and :_target properties in schema.
-            # They are fundamental as this is a relationship resource.
-            identity = commons.SchemaNavigator.add_identity(cls.origin.schema)
-            cls.schema['_origin'] = {
-                'required': True,
-                'type': cls.origin.schema[identity]['type'],
-            }
+        # Injecting :_origin and :_target properties in schema.
+        # They are fundamental as this is a relationship resource.
+        identity = commons.SchemaNavigator.add_identity(cls.origin.schema)
+        cls.schema['_origin'] = {
+            'required': True,
+            'type': cls.origin.schema[identity]['type'],
+        }
 
-            identity = commons.SchemaNavigator.add_identity(cls.target.schema)
-            cls.schema['_target'] = {
-                'required': True,
-                'type': cls.target.schema[identity]['type'],
-            }
+        identity = commons.SchemaNavigator.add_identity(cls.target.schema)
+        cls.schema['_target'] = {
+            'required': True,
+            'type': cls.target.schema[identity]['type'],
+        }
 
     @classmethod
     def describe(cls):

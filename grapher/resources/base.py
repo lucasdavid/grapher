@@ -14,23 +14,14 @@ class Resource(flask_restful.Resource):
 
     initialized = False
 
-    def __init__(self):
-        self.initialize()
-
     @classmethod
     def initialize(cls):
         """Initialize resource.
 
-        Usually called when the resource is instantiated or during the construction of the documentation.
-        This initialize doesn't do much, but what really matters is its overriding.
-
-        IMPORTANT:
-            Overriding initializes must be careful not to initialize a resource more than once,
-            as it might cause unexpected behavior (e.g.: registration of a event handler more than once).
-            Check :Resource.initialized property before initializing.
+        Called by grapher before giving the resource to Flask.
+        This method must be overridden by the users resources.
         """
-        if not cls.initialized:
-            cls.initialized = True
+        cls.initialized = True
 
     @property
     def paginator(self):
@@ -50,7 +41,8 @@ class Resource(flask_restful.Resource):
 
     @classmethod
     def real_name(cls):
-        """Retrieve the resource's real name based on the overwritten property :name or the class name.
+        """Retrieve the resource's real name based on the overwritten
+        property :name or the class name.
 
         :return: :str: the name that clearly represents the resource.
         """
@@ -62,8 +54,10 @@ class Resource(flask_restful.Resource):
 
         :return: :str: the string representing the end-point of the resource.
         """
-        end_point = (cls.end_point if cls.end_point is not None else cls.real_name()).lower()
-        end_point = '/'.join((settings.effective.BASE_END_POINT, end_point)).replace('//', '/')
+        end_point = (cls.end_point if cls.end_point is not None
+                     else cls.real_name()).lower()
+        end_point = '/'.join((settings.effective.BASE_END_POINT,
+                              end_point)).replace('//', '/')
 
         return '/' + end_point if end_point[0] != '/' else end_point
 
@@ -82,17 +76,21 @@ class Resource(flask_restful.Resource):
         }
 
     @staticmethod
-    def response(content=None, status=200, wrap=False, clean_content=True, **meta):
+    def response(content=None, status=200, wrap=False, clean_content=True,
+                 **meta):
         """Wraps the content with a default response structure and add metadata.
 
         :param content: the content that will be wrapped.
         :param status: the status to be sent with in the HTTP response.
-        :param wrap: overrides content wrapping. If content is a :dict and :meta != {}, :meta and :content are merged.
+        :param wrap: overrides content wrapping. If content is a :dict and
+                     :meta != {}, :meta and :content are merged.
         :param clean_content: eliminate empty keys in content before adding it.
-        :param meta: :dict that will be add to the '_metadata' key in the response.
+        :param meta: :dict that will be add to the '_metadata'
+                     key in the response.
 
         :return: :tuple (:dict response , :int status)
-        :raise ValueError: If the content is not a dictionary, wrap was set to False and there's metadata to add.
+        :raise ValueError: If the content is not a dictionary,
+                           wrap was set to False and there's metadata to add.
         """
         result = {}
 
@@ -112,11 +110,13 @@ class Resource(flask_restful.Resource):
                     # No metadata to add, content is the very whole response.
                     result = content
                 else:
-                    # There's metadata to add, but the user didn't specified if the content to be wrapped.
-                    # Since the content isn't a dictionary, merging isn't possible.
+                    # There's metadata to add, but the user didn't specified if
+                    # the content to be wrapped. Since the content isn't
+                    # a dictionary, merging isn't possible.
                     raise ValueError(
                         'Cannot merge %s into result dictionary. Please define '
-                        'content as a dictionary or set wrap to True.' % str(content))
+                        'content as a dictionary or set wrap to True.'
+                        % str(content))
 
         return result, status
 
