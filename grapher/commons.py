@@ -1,8 +1,9 @@
-import abc
+import inspect
 
 from cerberus import SchemaError
 
-from grapher import errors
+import abc
+import importlib
 
 
 class CollectionHelper(metaclass=abc.ABCMeta):
@@ -22,7 +23,9 @@ class CollectionHelper(metaclass=abc.ABCMeta):
         """
         return item is not None and \
                not isinstance(item, (list, tuple, set)) and \
-               not hasattr(item, '__iter__') or isinstance(item, dict) or issubclass(item.__class__, dict) or \
+               not hasattr(item, '__iter__') or isinstance(item,
+                                                           dict) or issubclass(
+                item.__class__, dict) or \
                isinstance(item, str)
 
     @classmethod
@@ -71,7 +74,9 @@ class SchemaNavigator(metaclass=abc.ABCMeta):
         for field, desc in schema.items():
             if 'identity' in desc and desc['identity']:
                 if identity:
-                    raise SchemaError('Cannot define both fields %s and %s as identity.', identity, field)
+                    raise SchemaError(
+                            'Cannot define both fields %s and %s as identity.',
+                            identity, field)
 
                 identity = field
 
@@ -167,3 +172,29 @@ class WordHelper(metaclass=abc.ABCMeta):
             suffix = 's'
         plural = root + suffix
         return plural
+
+
+def load_class(c):
+    if not c:
+        raise ValueError('Invalid value for c: %s' % c)
+
+    if isinstance(c, str):
+        parts = c.split('.')
+
+        m = load_module(parts[:-1])
+        c = getattr(m, parts[-1])
+
+    return c
+
+
+def load_module(m):
+    if not m:
+        raise ValueError('Invalid module to import: %s' % m)
+
+    if isinstance(m, (list, tuple)):
+        m = '.'.join(m)
+
+    if isinstance(m, str):
+        m = importlib.import_module(m)
+
+    return m

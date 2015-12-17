@@ -1,12 +1,14 @@
 import inspect
-import importlib
 
+import importlib
 from flask import Flask
 from flask_restful import Api
 from . import resources, docs, settings
 
 
 class Grapher:
+    instance = None
+
     def __init__(self, name='Grapher'):
         """Starts Grapher API.
 
@@ -14,6 +16,9 @@ class Grapher:
 
         :param name: the name of the application that will be created.
         """
+        if Grapher.instance is not None:
+            raise RuntimeError('Grapher is already running.')
+
         self.settings = settings.effective
 
         self.app = Flask(name)
@@ -33,10 +38,14 @@ class Grapher:
         docs.Docs.resources_to_describe = rs
         self.api.add_resource(docs.Docs, docs.Docs.real_end_point())
 
-    def _scan_resources(self):
-        """Scan project after subclasses of :Resource declared by the user. Then register them in the API.
+        Grapher.instance = self
 
-        All resources must have been declared in .grapher.resources, as it's the only module scanned.
+    def _scan_resources(self):
+        """Scan project after subclasses of :Resource declared by the user.
+        Then register them in the API.
+
+        All resources must have been declared in .grapher.resources,
+        as it's the only module scanned.
         """
         if self.settings.BASE_MODULE is None:
             raise ValueError('effective.BASE_MODULE is not set.')
@@ -44,5 +53,10 @@ class Grapher:
         declared_resources = '.'.join([self.settings.BASE_MODULE, 'resources'])
         declared_resources = importlib.import_module(declared_resources)
 
-        return [r for name, r in inspect.getmembers(
-            declared_resources, lambda c: inspect.isclass(c) and issubclass(c, resources.Resource))]
+        return [
+            r for name, r in inspect.getmembers(
+                    declared_resources,
+                    lambda c:
+                    inspect.isclass(c) and
+                    issubclass(c, resources.Resource))
+            ]

@@ -6,7 +6,8 @@ from . import validators, errors
 class Serializer:
     """Serializer for incoming and outgoing data by the resources.
 
-    All data must be validated by a serializer before being sent to repositories.
+    All data must be validated by a serializer before being sent
+    to repositories.
     """
 
     def __init__(self, label, schema):
@@ -67,7 +68,8 @@ class Serializer:
 class DynamicSerializer(Serializer):
     @property
     def projected_fields(self):
-        """Overrides BaseSerializer :project_fields property to consider fields requested by the user.
+        """Overrides BaseSerializer :project_fields property to consider fields
+        requested by the user.
 
         Usage:
             curl .../resource?fields=[field][,field]*
@@ -78,7 +80,8 @@ class DynamicSerializer(Serializer):
 
             if request.args.get('fields') is not None:
                 # The user has requested a field projection onto the result.
-                # Only get not empty fields, fixing requests errors such as "fields=,id,name" or "fields=id,name,"
+                # Only get not empty fields, fixing requests errors such
+                # as "fields=,id,name" or "fields=id,name,"
                 request_fields = {f for f in request.args.get('fields').split(',') if f}
 
                 invalid_fields = request_fields - fields

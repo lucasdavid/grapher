@@ -14,8 +14,8 @@ class MongodbRepository(base.Repository, metaclass=abc.ABCMeta):
     def mongodb_client(self):
         self._mongodb_client = self._mongodb_client or \
                                MongoClient(
-                                   **{k: self.connection_string[k] for k in
-                                      {'host', 'port'}})
+                                       **{k: self.connection_string[k] for k in
+                                          {'host', 'port'}})
         return self._mongodb_client
 
     @property
@@ -54,7 +54,7 @@ class MongodbEntityRepository(MongodbRepository, base.EntityRepository):
         entities = self.collection.find(query, skip=skip, limit=limit)
         return self.to_dict_of_dicts(entities)
 
-    def create(self, entities):
+    def create(self, entities, raise_errors=False):
         entities, indices = self.from_dict_of_dicts(entities)
 
         result = self.collection.insert_many(entities)
@@ -65,7 +65,7 @@ class MongodbEntityRepository(MongodbRepository, base.EntityRepository):
 
         return self.to_dict_of_dicts(entities, indices), {}
 
-    def update(self, entities):
+    def update(self, entities, raise_errors=False):
         entities, indices = self.from_dict_of_dicts(entities)
         failed = {}
 
@@ -75,6 +75,9 @@ class MongodbEntityRepository(MongodbRepository, base.EntityRepository):
                      entities), ordered=True)
 
         except BulkWriteError as bulk_error:
+            if raise_errors:
+                raise
+
             for error in bulk_error['writeErrors']:
                 i = error['index']
 
@@ -85,33 +88,23 @@ class MongodbEntityRepository(MongodbRepository, base.EntityRepository):
 
         return self.to_dict_of_dicts(entities, indices), failed
 
-    def delete(self, entities):
+    def delete(self, entities, raise_errors=False):
         entities, indices = self.from_dict_of_dicts(entities)
 
         result = self.collection.delete_many({'_id': {'$in': entities}})
 
-        return self.to_dict_of_dicts(entities, indices), {}
+        if result.deleted_count == len(entities):
+            return self.to_dict_of_dicts(entities, indices), {}
+        else:
+            if raise_errors:
+                raise BulkWriteError(result)
+
+            return (self.to_dict_of_dicts(entities[:result.deleted_count],
+                                          indices[:result.deleted_count]),
+                    self.to_dict_of_dicts(entities[result.deleted_count:],
+                                          indices[result.deleted_count:]))
 
 
 class MongodbRelationshipRepository(MongodbRepository,
                                     base.RelationshipRepository):
-    def match(self, origin=None, target=None, skip=0, limit=None):
-        pass
-
-    def update(self, entities):
-        pass
-
-    def where(self, skip=0, limit=None, **query):
-        pass
-
-    def delete(self, entities):
-        pass
-
-    def all(self, skip=0, limit=None):
-        pass
-
-    def find(self, identities):
-        pass
-
-    def create(self, entities):
-        pass
+    pass

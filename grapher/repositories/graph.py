@@ -41,20 +41,20 @@ class GraphRepository(base.Repository, metaclass=abc.ABCMeta):
 
         return self.to_dict_of_dicts(entities)
 
-    def create(self, entities):
+    def create(self, entities, raise_errors=False):
         entities = self.from_dict_of_dicts(entities)
         entities = self.g.create(*entities)
 
         return self.to_dict_of_dicts(entities), {}
 
-    def update(self, entities):
+    def update(self, entities, raise_errors=False):
         entities = self.from_dict_of_dicts(entities)
 
         self.g.push(*entities)
 
         return self.to_dict_of_dicts(entities), {}
 
-    def delete(self, identities):
+    def delete(self, identities, raise_errors=False):
         entities = self._build(identities)
         entities = self.g.delete(*entities)
 

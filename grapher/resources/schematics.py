@@ -1,8 +1,8 @@
 import importlib
-from grapher.auth.guardians import Guardian
 from .base import Resource
 from .. import managers
 from .. import repositories, serializers, parsers, commons, settings, errors
+from ..auth import Guardian
 from ..repositories import graph
 
 
@@ -15,7 +15,6 @@ class SchematicResource(Resource):
 
     _manager = None
     _serializer = None
-    _guardian = None
 
     @classmethod
     def initialize(cls):
@@ -45,14 +44,9 @@ class SchematicResource(Resource):
                 self.real_name(), self.schema)
         return self._serializer
 
-    @property
-    def guardian(self):
-        self._guardian = self._guardian or Guardian(self)
-        return self._guardian
-
     def get(self):
         try:
-            self.guardian.check_permissions()
+            Guardian.check_permissions()
 
             self.em().trigger('before_retrieve')
             query = parsers.QueryParser.parse()
@@ -70,7 +64,7 @@ class SchematicResource(Resource):
 
     def post(self):
         try:
-            self.guardian.check_permissions()
+            Guardian.check_permissions()
 
             entries = parsers.DataParser.parse_or_raise()
             entries, rejected = self.serializer.validate(entries)
@@ -99,7 +93,7 @@ class SchematicResource(Resource):
 
     def put(self):
         try:
-            self.guardian.check_permissions()
+            Guardian.check_permissions()
 
             entries = parsers.DataParser.parse_or_raise()
             entries, unidentified = self.manager.fetch(entries)
@@ -112,7 +106,7 @@ class SchematicResource(Resource):
 
     def patch(self):
         try:
-            self.guardian.check_permissions()
+            Guardian.check_permissions()
 
             request_entries = parsers.DataParser.parse_or_raise()
             database_entries, unidentified = self.manager.fetch(request_entries)
@@ -150,7 +144,7 @@ class SchematicResource(Resource):
 
     def delete(self):
         try:
-            self.guardian.check_permissions()
+            Guardian.check_permissions()
 
             query = parsers.QueryParser.parse_or_raise()
             entries = self.manager.query(**query)
