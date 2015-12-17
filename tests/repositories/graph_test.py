@@ -96,13 +96,13 @@ class GraphEntityRepositoryTest(TestCase):
 
         actual = self.r.where(test1=10, skip=skip, limit=limit)
 
-        self.assertIsInstance(actual, list)
+        self.assertIsInstance(actual, dict)
         self.assertEqual(len(actual), expected_length)
 
     def test_where_identity(self):
         actual = self.r.where(_id=10)
 
-        self.assertIsInstance(actual, list)
+        self.assertIsInstance(actual, dict)
         self.assertEqual(len(actual), 1)
 
     def test_where_raises_error_with_multiple_keys(self):
@@ -110,35 +110,41 @@ class GraphEntityRepositoryTest(TestCase):
             self.r.where(test1=10, test2='test')
 
     def test_create(self):
-        data = [fake_node().properties]
+        data = {0: fake_node().properties}
 
-        actual = self.r.create(data)
+        actual_created, actual_failed = self.r.create(data)
 
         self.assertTrue(self.r._g.create.called)
 
-        self.assertIsInstance(actual, list)
-        self.assertEqual(len(actual), 1)
+        self.assertIsInstance(actual_created, dict)
+        self.assertIsInstance(actual_failed, dict)
+        self.assertEqual(len(actual_created), 1)
+        self.assertEqual(len(actual_failed), 0)
 
     def test_update(self):
         n = fake_node()
-        data = [n.properties]
+        data = {0: n.properties}
         data[0]['_id'] = n._id
 
-        actual = self.r.update(data)
+        actual_updated, actual_failed = self.r.update(data)
 
         self.assertTrue(self.r._g.push.called)
 
-        self.assertIsInstance(actual, list)
-        self.assertEqual(len(actual), 1)
+        self.assertIsInstance(actual_updated, dict)
+        self.assertIsInstance(actual_failed, dict)
+        self.assertEqual(len(actual_updated), 1)
+        self.assertEqual(len(actual_failed), 0)
 
     def test_delete(self):
         entities = [{'_id': d._id} for d in self.data]
-        actual = self.r.delete(entities)
+        actual_deleted, actual_failed = self.r.delete(entities)
 
         self.assertTrue(self.r._g.delete.called)
 
-        self.assertIsInstance(actual, list)
-        self.assertEqual(len(actual), len(entities))
+        self.assertIsInstance(actual_deleted, dict)
+        self.assertIsInstance(actual_failed, dict)
+        self.assertEqual(len(actual_deleted), len(entities))
+        self.assertEqual(len(actual_failed), 0)
 
 
 class GraphRelationshipRepositoryTest(TestCase):
