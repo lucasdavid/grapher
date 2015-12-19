@@ -1,62 +1,77 @@
-import inspect
+from . import commons
+from .commons import Debug
+from .environment import Environment
+from .managers import Manager
+from .repositories import Repository
+from .schemas import Schema
+from .views import View
 
-import importlib
-from flask import Flask
-from flask_restful import Api
-from . import resources, docs, settings
 
-
-class Grapher:
+class Grapher(Environment):
     instance = None
 
+    components = [
+        ('schemas', 'schema', Schema),
+        ('views', 'view', View),
+        ('managers', 'manager', Manager),
+        ('repositories', 'repository', Repository),
+    ]
+
     def __init__(self, name='Grapher'):
-        """Starts Grapher API.
+        super().__init__(name)
 
-        The instantiation of the class Grapher also creates a flask app and a RESTFul api.
+        for name, _, module in self.components:
+            self.collect_user_artifacts(name, module)
 
-        :param name: the name of the application that will be created.
-        """
-        if Grapher.instance is not None:
-            raise RuntimeError('Grapher is already running.')
-
-        self.settings = settings.effective
-
-        self.app = Flask(name)
-        self.app.config.from_object(self.settings)
-
-        self.api = Api(self.app)
-
-        # Start the API, loading all resources and documenting itself.
-        rs = self._scan_resources()
-        for r in rs:
-            if not r.initialized:
-                r.initialize()
-
-            self.api.add_resource(r, r.real_end_point())
-
-        # Gives all resources scanned to the Docs resource and register it.
-        docs.Docs.resources_to_describe = rs
-        self.api.add_resource(docs.Docs, docs.Docs.real_end_point())
+        for name, schema in self.user_artifacts['schemas'].items():
+            self.initialize(name, schema)
 
         Grapher.instance = self
 
-    def _scan_resources(self):
-        """Scan project after subclasses of :Resource declared by the user.
-        Then register them in the API.
+    def collect_user_artifacts(self, component, super_class):
+        Debug.info('Collecting user\'s %s...' % component)
 
-        All resources must have been declared in .grapher.resources,
-        as it's the only module scanned.
-        """
         if self.settings.BASE_MODULE is None:
             raise ValueError('effective.BASE_MODULE is not set.')
 
-        declared_resources = '.'.join([self.settings.BASE_MODULE, 'resources'])
-        declared_resources = importlib.import_module(declared_resources)
+        try:
+            self.user_artifacts[component] = {}
 
-        return [
-            r for name, r in inspect.getmembers(
-                    declared_resources,
-                    lambda c:
-                    inspect.isclass(c) and
-                    issubclass(c, resources.Resource))
-            ]
+            for name, c in commons.load_classes_in(
+                    [self.settings.BASE_MODULE, component],
+                    sub_classes_of=super_class):
+                self.user_artifacts[component][name] = c
+
+            Debug.info('Done.')
+
+        except ImportError:
+            Debug.error('Failed.')
+
+        return self
+
+    def initialize(self, name, schema):
+        Debug.info('Initializing %s schema...' % name)
+
+        schema.initialize()
+
+        user_schemas = '.'.join((self.settings.BASE_MODULE, 'schemas'))
+
+        # Find components or instantiate the default ones.
+        ua = self.user_artifacts
+
+        for c_name, schema_attr, _ in [c for c in self.components if
+                                       c[0] != 'schemas']:
+            # Get component specified by user or default.
+            c = ua[c_name][name] \
+                if name in ua[c_name] \
+                else self.settings.DEFAULT_COMPONENTS[c_name]
+
+            # If c is a string, resolve reference.
+            c = commons.load_class(c, base_module=user_schemas)
+
+            # Instantiates and add component to schema.
+            setattr(schema, schema_attr, c(schema))
+
+        self.schemas[name] = schema
+
+        Debug.info('Done.')
