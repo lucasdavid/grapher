@@ -4,6 +4,7 @@ from cerberus import SchemaError
 
 import abc
 import importlib
+from . import settings
 
 
 class CollectionHelper(metaclass=abc.ABCMeta):
@@ -174,14 +175,33 @@ class WordHelper(metaclass=abc.ABCMeta):
         return plural
 
 
-def load_class(c):
+class Debug(metaclass=abc.ABCMeta):
+    @classmethod
+    def message(cls, message, label='info'):
+        if settings.effective.DEBUG:
+            print('%s: %s' % (label, message))
+
+    @classmethod
+    def info(cls, message):
+        cls.message(message)
+
+    @classmethod
+    def error(cls, message):
+        cls.message(message, 'error')
+
+    @classmethod
+    def warning(cls, message):
+        cls.message(message, 'warning')
+
+
+def load_class(c, base_module=None):
     if not c:
         raise ValueError('Invalid value for c: %s' % c)
 
     if isinstance(c, str):
         parts = c.split('.')
 
-        m = load_module(parts[:-1])
+        m = load_module(parts[:-1] or base_module)
         c = getattr(m, parts[-1])
 
     return c
@@ -198,3 +218,12 @@ def load_module(m):
         m = importlib.import_module(m)
 
     return m
+
+
+def load_classes_in(m, sub_classes_of=None):
+    m = load_module(m)
+
+    return inspect.getmembers(
+            m, lambda c: inspect.isclass(c) and
+                         sub_classes_of is not None and
+                         issubclass(c, sub_classes_of))
