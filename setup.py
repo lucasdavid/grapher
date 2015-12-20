@@ -2,7 +2,6 @@ from setuptools import setup, find_packages
 
 requirements = [
     'Flask-Script',
-    'flask-restful',
     'py2neo',
     'cerberus',
 ]
