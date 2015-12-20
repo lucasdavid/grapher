@@ -67,12 +67,12 @@ class CollectionHelper(metaclass=abc.ABCMeta):
 
 class SchemaNavigator(metaclass=abc.ABCMeta):
     @classmethod
-    def identity_from(cls, schema):
+    def identity_from(cls, model):
         # Let's assume :_id is the identity field.
         identity = None
 
         # Now, we override :_id, if explicitly flagged by the user.
-        for field, desc in schema.items():
+        for field, desc in model.items():
             if 'identity' in desc and desc['identity']:
                 if identity:
                     raise SchemaError(
@@ -177,21 +177,24 @@ class WordHelper(metaclass=abc.ABCMeta):
 
 class Debug(metaclass=abc.ABCMeta):
     @classmethod
-    def message(cls, message, label='info'):
+    def message(cls, message, label='', end='\n'):
         if settings.effective.DEBUG:
-            print('%s: %s' % (label, message))
+            if label:
+                message = '%s: %s' % (label, message)
+
+            print(message, end=end)
 
     @classmethod
-    def info(cls, message):
-        cls.message(message)
+    def info(cls, message, end='\n'):
+        cls.message(message, end=end)
 
     @classmethod
-    def error(cls, message):
-        cls.message(message, 'error')
+    def error(cls, message, end='\n'):
+        cls.message(message, 'error', end=end)
 
     @classmethod
-    def warning(cls, message):
-        cls.message(message, 'warning')
+    def warning(cls, message, end='\n'):
+        cls.message(message, 'warning', end=end)
 
 
 def load_class(c, base_module=None):
