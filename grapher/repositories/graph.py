@@ -24,7 +24,7 @@ class GraphRepository(base.Repository, metaclass=abc.ABCMeta):
         """Build entities or relationships based on their identities.
 
         :param identities: :list of identities compatible with
-        self.schema[self.identity]['type'].
+        self.schema[self.schema.Meta.identity]['type'].
 
         :return: a list of :nodes or :relationships corresponding to
         the identities passed, in order.
@@ -70,11 +70,11 @@ class GraphEntityRepository(GraphRepository, base.EntityRepository):
 
         for i, entry in entries.items():
             # Find if the node exists on the database or is a new node.
-            if self.identity in entry:
+            if self.schema.Meta.identity in entry:
                 # The entry claims to have an identity,
                 # bind the node to a database node.
-                node = self.g.node(entry[self.identity])
-                del entry[self.identity]
+                node = self.g.node(entry[self.schema.Meta.identity])
+                del entry[self.schema.Meta.identity]
             else:
                 # That's a new entry. Create a new node.
                 node = Node(self.label)
@@ -89,7 +89,7 @@ class GraphEntityRepository(GraphRepository, base.EntityRepository):
 
         for node in entities:
             e = node.properties
-            e[self.identity] = node._id
+            e[self.schema.Meta.identity] = node._id
 
             entries.append(e)
 
@@ -115,7 +115,7 @@ class GraphEntityRepository(GraphRepository, base.EntityRepository):
         # TODO: Allow multiple keys when searching. This issue might help:
         # http://stackoverflow.com/questions/27795874/py2neo-graph-find-one-with-multiple-key-values
         query_item = query.popitem()
-        if query_item[0] == self.identity:
+        if query_item[0] == self.schema.Meta.identity:
             return self.find((query_item[1],))
 
         if limit is not None:
@@ -139,7 +139,7 @@ class GraphRelationshipRepository(GraphRepository, base.RelationshipRepository):
         relationships = []
 
         for r in entities:
-            if self.identity in r:
+            if self.schema.Meta.identity in r:
                 relationship = self.g.relationship(r)
             else:
                 origin = self.g.node(r['_origin'])
@@ -148,8 +148,8 @@ class GraphRelationshipRepository(GraphRepository, base.RelationshipRepository):
                 relationship = Relationship(origin, self.label.upper(), target)
 
             # Delete meta properties, if present.
-            if self.identity in r:
-                del r[self.identity]
+            if self.schema.Meta.identity in r:
+                del r[self.schema.Meta.identity]
             if '_origin' in r:
                 del r['_origin']
             if '_target' in r:
@@ -165,7 +165,7 @@ class GraphRelationshipRepository(GraphRepository, base.RelationshipRepository):
 
         for r in entities:
             e = r.properties
-            e[self.identity] = r._id
+            e[self.schema.Meta.identity] = r._id
             e['_origin'] = r.start_node._id
             e['_target'] = r.end_node._id
 
@@ -207,7 +207,7 @@ class GraphRelationshipRepository(GraphRepository, base.RelationshipRepository):
                              'multiple parameter filtering yet.')
 
         query_item = query.popitem()
-        if query_item[0] == self.identity:
+        if query_item[0] == self.schema.Meta.identity:
             return self.find((query_item[1],))
 
         raise NotImplementedError

@@ -32,7 +32,7 @@ class MongodbRepository(base.Repository, metaclass=abc.ABCMeta):
         entities = list(entities)
 
         for e in entities:
-            e[self.identity] = str(e[self.identity])
+            e[self.schema.Meta.identity] = str(e[self.schema.Meta.identity])
 
         return super().to_dict_of_dicts(entities, indices)
 
@@ -61,7 +61,7 @@ class MongodbEntityRepository(MongodbRepository, base.EntityRepository):
         ids = iter(result.inserted_ids)
 
         for entity in entities:
-            entity.update({self.identity: str(next(ids))})
+            entity.update({self.schema.Meta.identity: str(next(ids))})
 
         return self.to_dict_of_dicts(entities, indices), {}
 
@@ -71,7 +71,7 @@ class MongodbEntityRepository(MongodbRepository, base.EntityRepository):
 
         try:
             result = self.collection.bulk_write(
-                    (UpdateOne({'_id': e[self.identity]}, {'$set': e}) for e in
+                    (UpdateOne({'_id': e[self.schema.Meta.identity]}, {'$set': e}) for e in
                      entities), ordered=True)
 
         except BulkWriteError as bulk_error:

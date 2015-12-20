@@ -1,5 +1,4 @@
 import abc
-from .. import commons
 
 
 class Repository(metaclass=abc.ABCMeta):
@@ -10,15 +9,13 @@ class Repository(metaclass=abc.ABCMeta):
 
     connection_string = None
 
-    def __init__(self, label, schema):
+    def __init__(self, schema):
         """Construct a repository of a :label, constrained by a :schema.
 
-        :param label: :str: which represents the entity in the persistence back-end.
-        :param schema: :dict: which constrains entities :label of this repository.
+        :param schema: :Schema: to which this repository will be associated.
         """
-        self.label = label
         self.schema = schema
-        self.identity = commons.SchemaNavigator.identity_from(schema)
+        self.label = schema.__name__
 
     def from_dict_of_dicts(self, entries):
         return [e for i, e in entries.items()], list(entries.keys())
@@ -33,10 +30,13 @@ class Repository(metaclass=abc.ABCMeta):
     def all(self, skip=0, limit=None):
         """Retrieve all elements that share :self.label.
 
-        The return must be a list of dictionaries that represent the entities retrieved.
+        The return must be a list of dictionaries that represent the
+        entities retrieved.
 
-        :param skip: the number of elements to skip when retrieving. If None, none element should be skipped.
-        :param limit: the maximum length of the list retrieved. If None, returns all elements after :skip.
+        :param skip: the number of elements to skip when retrieving.
+                     If None, none element should be skipped.
+        :param limit: the maximum length of the list retrieved.
+                      If None, returns all elements after :skip.
         """
         raise NotImplementedError
 
@@ -110,7 +110,7 @@ class Repository(metaclass=abc.ABCMeta):
         """Delete entities and return them.
 
         The dict of :entities to be deleted, instances of
-        :self.schema[self.identity]['type'].
+        :self.schema.model[self.schema.Meta.identity]['type'].
 
         This method must return a pair containing dict of dictionaries that
         represent the instances deleted (or failed) in the same order they

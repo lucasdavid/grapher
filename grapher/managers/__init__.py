@@ -1,1 +1,1 @@
-from .base import Manager
+from .base import Manager, EntityManager, RelationshipManager

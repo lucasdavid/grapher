@@ -1,2 +1,1 @@
-from .base import Resource
-from .schematics import SchematicResource, EntityResource, RelationshipResource
+from .base import Resource, SchematicResource, EntityResource, RelationshipResource

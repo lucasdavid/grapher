@@ -1,25 +1,20 @@
+import abc
 from .. import commons
 
 
-class Manager:
-    def __init__(self, name, schema, repository_class):
-        self.name = name
+class Manager(metaclass=abc.ABCMeta):
+    def __init__(self, schema):
         self.schema = schema
-        self.repository_class = repository_class
-        self.identity = commons.SchemaNavigator.identity_from(self.schema)
-
-    _repository = None
 
     @property
     def repository(self):
-        self._repository = self._repository or self.repository_class(self.name, self.schema)
-        return self._repository
+        return self.schema.repository
 
     def identify(self, entities):
         identified, unidentified = {}, {}
 
         for i, entity in entities.items():
-            if self.identity in entity:
+            if self.schema.Meta.identity in entity:
                 identified[i] = entity
             else:
                 unidentified[i] = entity
@@ -34,13 +29,15 @@ class Manager:
 
     def fetch(self, entities):
         entities, unidentified = self.identify(entities)
-        return self.find((e[self.identity] for i, e in entities.items())), unidentified
+        return self.find(
+                (e[self.schema.Meta.identity] for i, e in entities.items())), unidentified
 
     def query(self, query, skip=0, limit=None):
         return self.repository.where(skip=skip, limit=limit, **query)
 
     def query_or_all(self, query, skip=0, limit=None):
-        return self.query(query, skip, limit) if query else self.all(skip, limit)
+        return self.query(query, skip, limit) if query else self.all(skip,
+                                                                     limit)
 
     def create(self, entities):
         return self.repository.create(entities)
@@ -50,3 +47,11 @@ class Manager:
 
     def delete(self, entities):
         return self.repository.delete(entities)
+
+
+class EntityManager(Manager):
+    pass
+
+
+class RelationshipManager(Manager):
+    pass
