@@ -10,9 +10,8 @@ class Serializer:
     to repositories.
     """
 
-    def __init__(self, label, schema):
-        self.label = label
-        self.schema = schema
+    def __init__(self, model):
+        self.model = model
 
     _projected_fields = None
 
@@ -20,21 +19,26 @@ class Serializer:
     def projected_fields(self):
         # Scan all fields that are tagged as "visible".
         self._projected_fields = self._projected_fields or \
-                                 {f for f, d in self.schema.items() if 'visible' not in d or d['visible']}
+                                 {f for f, d in self.model.items()
+                                  if 'visible' not in d or d['visible']}
         return self._projected_fields
 
     _validator = None
 
     @property
     def validator(self):
-        self._validator = self._validator or validators.GrapherValidator(self.schema)
+        self._validator = (self._validator or
+                           validators.GrapherValidator(self.model))
         return self._validator
 
     def validate(self, entries):
         """Validate entries according to a schema.
 
-        :param entries: :dict: containing entries to be validated. E.g.: {0: {...}, 1: {...}, 2: {...}}.
-        :return: :tuple: of :dict:, containing the entries that were accepted and rejected, respectively. E.g.:
+        :param entries: :dict: containing entries to be validated.
+            E.g.: {0: {...}, 1: {...}, 2: {...}}.
+
+        :return: :tuple: of :dict:, containing the entries that were
+        accepted and rejected, respectively. E.g.:
             {0: {...}, 2: {...}}, {1: {...}}
         """
         accepted, rejected = {}, {}
@@ -49,13 +53,17 @@ class Serializer:
         return accepted, rejected
 
     def project(self, entries):
-        """For each entry in entries, remove all (key, value) pairs that are not in the set
-        of projected fields, which are likely private or non-requested fields.
+        """For each entry in entries, remove all (key, value) pairs that
+        are not in the set of projected fields, which are likely private
+        or non-requested fields.
 
-        This happens inplace: as this will be the last operation and the filtered info. will unlikely
-        be reused, there is no need for building other dictionaries.
+        This happens inplace: as this will be the last operation and the
+        filtered info. will unlikely be reused, there is no need for building
+        other dictionaries.
 
-        :param entries: :dict: containing entries to be projected. E.g.: {0: {...}, 1: {...}, 2: {...}}.
+        :param entries: :dict: containing entries to be projected.
+        E.g.: {0: {...}, 1: {...}, 2: {...}}.
+
         :return: :entries filtered.
         """
         for i, entry in entries.items():
@@ -82,15 +90,17 @@ class DynamicSerializer(Serializer):
                 # The user has requested a field projection onto the result.
                 # Only get not empty fields, fixing requests errors such
                 # as "fields=,id,name" or "fields=id,name,"
-                request_fields = {f for f in request.args.get('fields').split(',') if f}
+                request_fields = request.args.get('fields').split(',')
+                request_fields = {f for f in request_fields if f}
 
                 invalid_fields = request_fields - fields
                 if invalid_fields:
                     # End-users have tried to project invalid fields, such
                     # as nonexistent fields or fields marked as not visible.
                     raise errors.BadRequestError(
-                        ('INVALID_FIELDS', invalid_fields,
-                         ('%s?fields=%s' % (request.base_url, ','.join(fields)),))
+                            ('INVALID_FIELDS', invalid_fields,
+                             ('%s?fields=%s' % (
+                             request.base_url, ','.join(fields)),))
                     )
 
                 self._projected_fields = fields & request_fields

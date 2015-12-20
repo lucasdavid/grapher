@@ -1,3 +1,4 @@
+import abc
 
 
 class EventManager:
@@ -14,7 +15,9 @@ class EventManager:
         :raise ValueError: if event or handler cannot be registered.
         """
         if not event or not handler:
-            raise ValueError('Handler {%s} cannot be registered in event %s.' % (handler, event))
+            raise ValueError(
+                    'Handler {%s} cannot be registered in event %s.' % (
+                        handler, event))
 
         if event not in self.events:
             self.events[event] = []
@@ -36,3 +39,35 @@ class EventManager:
             handler(*args, **kwargs)
 
         return self
+
+
+class EventListener(metaclass=abc.ABCMeta):
+    pass
+
+
+class AppLifeCycleEventListener(EventListener, metaclass=abc.ABCMeta):
+    @classmethod
+    def on_app_start(cls):
+        raise NotImplementedError
+
+    @classmethod
+    def on_app_end(cls):
+        raise NotImplementedError
+
+    @classmethod
+    def on_app_dispose(cls):
+        raise NotImplementedError
+
+
+class RequestLifeCycleEventListener(EventListener, metaclass=abc.ABCMeta):
+    @classmethod
+    def on_request_start(cls):
+        raise NotImplementedError
+
+    @classmethod
+    def on_request_end(cls):
+        raise NotImplementedError
+
+    @classmethod
+    def on_request_dispose(cls):
+        raise NotImplementedError
