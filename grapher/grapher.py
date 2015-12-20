@@ -24,7 +24,7 @@ class Grapher(Environment):
             self.collect_user_artifacts(name, module)
 
         for name, schema in self.user_artifacts['schemas'].items():
-            self.initialize(name, schema)
+            self.gather_components(name, schema)
 
         self.register_resources()
 
@@ -51,11 +51,10 @@ class Grapher(Environment):
 
         return self
 
-    def initialize(self, name, schema):
+    def gather_components(self, name, schema):
         Debug.info('Initializing %s schema...' % name, end=' ')
 
         schema.on_app_start()
-        user_schemas_module = '.'.join((self.settings.BASE_MODULE, 'schemas'))
 
         # Find components or instantiate the default ones.
         ua = self.user_artifacts
@@ -70,7 +69,8 @@ class Grapher(Environment):
                 c = self.settings.DEFAULT_COMPONENTS[schema.Meta.type][c_name]
 
             # If c is a string, resolve reference.
-            c = commons.load_class(c, base_module=user_schemas_module)
+            c = commons.load_class(
+                    c, base_module=(self.settings.BASE_MODULE, c_name))
 
             # Instantiates and add component to schema.
             setattr(schema, schema_attr, c(schema))
@@ -91,8 +91,9 @@ class Grapher(Environment):
             if r.__class__ in user_resources:
                 user_resources.remove(r.__class__)
 
-            view_func = r.as_view('%s_schema_api' % name)
+            view_func = r.as_view('%s_schema_api' % name, schema=schema)
             self.app.add_url_rule(end_point, view_func=view_func)
+
             Debug.message('Done.')
 
         if user_resources:

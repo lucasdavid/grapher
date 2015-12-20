@@ -1,4 +1,4 @@
-from flask import views
+from flask import views, jsonify
 from .. import paginators
 from .. import serializers, parsers, commons, settings, errors
 from ..guardian import Guardian
@@ -58,7 +58,7 @@ class Resource(views.MethodView):
                             'define content as a dictionary or  set wrap to '
                             'True.' % str(content))
 
-        return result, status
+        return jsonify(result), status
 
     def real_name(self):
         """Retrieve the resource's real name based on the overwritten
