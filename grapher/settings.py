@@ -19,6 +19,20 @@ class Settings:
     # pluralization will NOT happen if the user has set :EntityResource.name.
     PLURALIZE_ENTITIES_NAMES = True
 
+    DEFAULT_COMPONENTS = {
+        'entity': {
+            'repositories': 'grapher.repositories.graph.GraphEntityRepository',
+            'managers': 'grapher.managers.EntityManager',
+            'resources': 'grapher.resources.EntityResource',
+        },
+        'relationship': {
+            'repositories': 'grapher.repositories.graph.'
+                            'GraphRelationshipRepository',
+            'managers': 'grapher.managers.RelationshipManager',
+            'resources': 'grapher.resources.RelationshipResource',
+        },
+    }
+
     DATABASES = {
         'neo4j': {
             'uri': '127.0.0.1:7474/db/data/',
@@ -35,7 +49,7 @@ class Settings:
     AUTH = {
         'database': 'mongodb',
         'grant': {'expires_in_seconds': 100},
-        'guardian_class': 'grapher.auth.guardians.Guardian'
+        'guardian': 'grapher.auth.guardians.Guardian'
     }
 
     # Flags if partial recoveries should be attempted.
