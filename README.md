@@ -3,6 +3,8 @@
 [![Build Status](https://travis-ci.org/lucasdavid/grapher.svg?branch=master)](https://travis-ci.org/lucasdavid/grapher)
 [![Coverage Status](https://coveralls.io/repos/lucasdavid/grapher/badge.svg?branch=master&service=github)](https://coveralls.io/github/lucasdavid/grapher?branch=master)
 
+Note: I decided to end this project as I got in contact with [Meteor](http://meteor.com/), which contains much of the features that I attempted to achieve.
+
 ## Introduction
 RESTful APIs creator based on resource schematics.
 
