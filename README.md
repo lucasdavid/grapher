@@ -1,18 +1,16 @@
 # grapher
 
-Note: I decided to end this project as I got in contact with [Meteor](http://meteor.com/), which contains much of the features that I attempted to achieve.
+Note: I decided to end this project as I got in contact with [Meteor](http://meteor.com/), which already contains many of the features I attempted to implement.
 
 ## Introduction
 RESTful APIs creator based on resource schematics.
 
-grapher aims at high speed development of high quality web
+Grapher aims at high speed development of high quality web
 [RESTFul APIs](https://en.wikipedia.org/wiki/Representational_state_transfer). The idea is to provide a automatic
-back-end - just like [eve-python](http://python-eve.org/) -, but without sacrificing the possibility of customization -
+back-end -- just like [eve-python](http://python-eve.org/) -- without sacrificing the possibility of customization --
 similar to [rest-framework](http://www.django-rest-framework.org/).
 
-If your goal is to develop a distributed/web application, take a look at our
-[wiki](https://github.com/lucasdavid/grapher/wiki) to see how we can help you!
-For now, a glimpse on how is to design APIs with grapher:
+A glimpse on how is to design APIs with grapher:
 
 ```py
 class Book(resources.EntityResource):
@@ -35,7 +33,7 @@ class Authorship(resources.RelationshipResource):
     }
 
 ```
-  
+
 ## Documentation and contributing
 
 All documents were moved to our [wiki](https://github.com/lucasdavid/grapher/wiki). There, you can find posts about concepts used, tecnical usage and guidelines. Any contributions are more than welcome. Please refer to
