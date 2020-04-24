@@ -1,7 +1,5 @@
 # grapher
 
-Note: I decided to end this project as I got in contact with [Meteor](http://meteor.com/), which already contains many of the features I attempted to implement.
-
 ## Introduction
 RESTful APIs creator based on resource schematics.
 
