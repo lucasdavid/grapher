@@ -1,6 +1,4 @@
 # grapher
-
-## Introduction
 RESTful APIs creator based on resource schematics.
 
 Grapher aims at high speed development of high quality web
